@@ -1,0 +1,2939 @@
+diff -r legged_gym/envs/a1/a1_config.py /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/a1/a1_config.py
+35c35
+<         pos = [0.0, 0.0, 0.42] # x,y,z [m]
+---
+>         pos = [0.0, 0.0, 0.35] # x,y,z [m]
+52a53,71
+>     class init_state_slope( LeggedRobotCfg.init_state ):
+>         pos = [0.5, 0.0, 0.24] # x,y,z [m]
+>         default_joint_angles = { # = target angles [rad] when action = 0.0
+>             'FL_hip_joint': 0.03,   # [rad]
+>             'RL_hip_joint': 0.03,   # [rad]
+>             'FR_hip_joint': -0.03,  # [rad]
+>             'RR_hip_joint': -0.03,   # [rad]
+> 
+>             'FL_thigh_joint': 1.0,     # [rad]
+>             'RL_thigh_joint': 1.8,   # [rad]1.8
+>             'FR_thigh_joint': 1.0,     # [rad]
+>             'RR_thigh_joint': 1.8,   # [rad]
+> 
+>             'FL_calf_joint': -2.2,   # [rad]
+>             'RL_calf_joint': -1.2,    # [rad]
+>             'FR_calf_joint': -2.2,  # [rad]
+>             'RR_calf_joint': -1.2,    # [rad]
+>         }
+>         
+65d83
+<         name = "a1"
+68c86
+<         terminate_after_contacts_on = ["base"]
+---
+>         terminate_after_contacts_on = ["base"]#, "thigh", "calf"]
+74,76c92,94
+<         class scales( LeggedRobotCfg.rewards.scales ):
+<             torques = -0.0002
+<             dof_pos_limits = -10.0
+---
+>         # class scales( LeggedRobotCfg.rewards.scales ):
+>             # torques = -0.0002
+>             # dof_pos_limits = -10.0
+85c103
+<   
+\ No newline at end of file
+---
+>   
+Only in /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/a1: a1_parkour_config.py
+Binary files legged_gym/envs/a1/__pycache__/a1_config.cpython-38.pyc and /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/a1/__pycache__/a1_config.cpython-38.pyc differ
+Only in /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/a1/__pycache__: a1_parkour_config.cpython-38.pyc
+diff -r legged_gym/envs/anymal_b/anymal_b_config.py /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/anymal_b/anymal_b_config.py
+36d35
+<         name = "anymal_b"
+Binary files legged_gym/envs/anymal_b/__pycache__/anymal_b_config.cpython-38.pyc and /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/anymal_b/__pycache__/anymal_b_config.cpython-38.pyc differ
+Binary files legged_gym/envs/anymal_c/flat/__pycache__/anymal_c_flat_config.cpython-38.pyc and /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/anymal_c/flat/__pycache__/anymal_c_flat_config.cpython-38.pyc differ
+diff -r legged_gym/envs/anymal_c/mixed_terrains/anymal_c_rough_config.py /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/anymal_c/mixed_terrains/anymal_c_rough_config.py
+73d72
+<         name = "anymal_c"
+Binary files legged_gym/envs/anymal_c/mixed_terrains/__pycache__/anymal_c_rough_config.cpython-38.pyc and /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/anymal_c/mixed_terrains/__pycache__/anymal_c_rough_config.cpython-38.pyc differ
+Binary files legged_gym/envs/anymal_c/__pycache__/anymal.cpython-38.pyc and /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/anymal_c/__pycache__/anymal.cpython-38.pyc differ
+diff -r legged_gym/envs/base/base_task.py /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/base/base_task.py
+33c33
+< from isaacgym import gymutil
+---
+> from isaacgym import gymutil, gymtorch
+35a36
+> import time
+64c65
+< 
+---
+>         
+99a101,122
+>             self.gym.subscribe_viewer_keyboard_event(
+>                 self.viewer, gymapi.KEY_F, "free_cam")
+>             for i in range(9):
+>                 self.gym.subscribe_viewer_keyboard_event(
+>                 self.viewer, getattr(gymapi, "KEY_"+str(i)), "lookat"+str(i))
+>             self.gym.subscribe_viewer_keyboard_event(
+>                 self.viewer, gymapi.KEY_LEFT_BRACKET, "prev_id")
+>             self.gym.subscribe_viewer_keyboard_event(
+>                 self.viewer, gymapi.KEY_RIGHT_BRACKET, "next_id")
+>             self.gym.subscribe_viewer_keyboard_event(
+>                 self.viewer, gymapi.KEY_SPACE, "pause")
+>             self.gym.subscribe_viewer_keyboard_event(
+>                 self.viewer, gymapi.KEY_W, "vx_plus")
+>             self.gym.subscribe_viewer_keyboard_event(
+>                 self.viewer, gymapi.KEY_S, "vx_minus")
+>             self.gym.subscribe_viewer_keyboard_event(
+>                 self.viewer, gymapi.KEY_A, "left_turn")
+>             self.gym.subscribe_viewer_keyboard_event(
+>                 self.viewer, gymapi.KEY_D, "right_turn")
+>         self.free_cam = False
+>         self.lookat_id = 0
+>         self.lookat_vec = torch.tensor([-0, 2, 1], requires_grad=False, device=self.device)
+119a143,147
+>     def lookat(self, i):
+>         look_at_pos = self.root_states[i, :3].clone()
+>         cam_pos = look_at_pos + self.lookat_vec
+>         self.set_camera(cam_pos, look_at_pos)
+> 
+125c153,154
+< 
+---
+>             if not self.free_cam:
+>                 self.lookat(self.lookat_id)
+131a161,195
+>                 
+>                 if not self.free_cam:
+>                     for i in range(9):
+>                         if evt.action == "lookat" + str(i) and evt.value > 0:
+>                             self.lookat(i)
+>                             self.lookat_id = i
+>                     if evt.action == "prev_id" and evt.value > 0:
+>                         self.lookat_id  = (self.lookat_id-1) % self.num_envs
+>                         self.lookat(self.lookat_id)
+>                     if evt.action == "next_id" and evt.value > 0:
+>                         self.lookat_id  = (self.lookat_id+1) % self.num_envs
+>                         self.lookat(self.lookat_id)
+>                     if evt.action == "vx_plus" and evt.value > 0:
+>                         self.commands[self.lookat_id, 0] += 0.2
+>                     if evt.action == "vx_minus" and evt.value > 0:
+>                         self.commands[self.lookat_id, 0] -= 0.2
+>                     if evt.action == "left_turn" and evt.value > 0:
+>                         self.commands[self.lookat_id, 3] += 0.5
+>                     if evt.action == "right_turn" and evt.value > 0:
+>                         self.commands[self.lookat_id, 3] -= 0.5
+>                 if evt.action == "free_cam" and evt.value > 0:
+>                     self.free_cam = not self.free_cam
+>                     if self.free_cam:
+>                         self.set_camera(self.cfg.viewer.pos, self.cfg.viewer.lookat)
+>                 
+>                 if evt.action == "pause" and evt.value > 0:
+>                     self.pause = True
+>                     while self.pause:
+>                         time.sleep(0.1)
+>                         self.gym.draw_viewer(self.viewer, self.sim, True)
+>                         for evt in self.gym.query_viewer_action_events(self.viewer):
+>                             if evt.action == "pause" and evt.value > 0:
+>                                 self.pause = False
+>                         if self.gym.query_viewer_has_closed(self.viewer):
+>                             sys.exit()
+132a197,198
+>                         
+>                 
+136a203
+>             self.gym.poll_viewer_events(self.viewer)
+144c211,218
+<                 self.gym.poll_viewer_events(self.viewer)
+\ No newline at end of file
+---
+>                 self.gym.poll_viewer_events(self.viewer)
+>             
+>             if not self.free_cam:
+>                 p = self.gym.get_viewer_camera_transform(self.viewer, None).p
+>                 cam_trans = torch.tensor([p.x, p.y, p.z], requires_grad=False, device=self.device)
+>                 look_at_pos = self.root_states[self.lookat_id, :3].clone()
+>                 self.lookat_vec = cam_trans - look_at_pos
+>             
+diff -r legged_gym/envs/base/legged_robot_config.py /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/base/legged_robot_config.py
+30a31,33
+> from posixpath import relpath
+> from torch.nn.modules.activation import ReLU
+> from torch.nn.modules.pooling import MaxPool2d
+32c35
+< 
+---
+> import torch.nn as nn
+33a37,39
+>     class play:
+>         load_student_config = False
+>         mask_priv_obs = False
+35,36c41,50
+<         num_envs = 4096
+<         num_observations = 235
+---
+>         num_envs = 6144
+>         # num_envs = 10 # remember also change #TODO TBI, or it would have index error
+> 
+>         n_scan = 132
+>         n_priv = 3+3 +3
+>         n_priv_latent = 4 + 1 + 12 +12
+>         n_proprio = 3 + 2 + 3 + 4 + 36 + 5
+>         history_len = 10
+> 
+>         num_observations = n_proprio + n_scan + history_len*n_proprio + n_priv_latent + n_priv #n_scan + n_proprio + n_priv #187 + 47 + 5 + 12 
+41a56,133
+>         obs_type = "og"
+> 
+> 
+>         
+>         
+>         
+>         history_encoding = True
+>         reorder_dofs = True
+>         
+>         
+>         # action_delay_range = [0, 5]
+> 
+>         # additional visual inputs 
+> 
+>         # action_delay_range = [0, 5]
+> 
+>         # additional visual inputs 
+>         include_foot_contacts = True
+>         
+>         randomize_start_pos = False
+>         randomize_start_vel = False
+>         randomize_start_yaw = False
+>         rand_yaw_range = 1.2
+>         randomize_start_y = False
+>         rand_y_range = 0.5
+>         randomize_start_pitch = False
+>         rand_pitch_range = 1.6
+> 
+>         contact_buf_len = 100
+> 
+>         next_goal_threshold = 0.2
+>         reach_goal_delay = 0.1
+>         num_future_goal_obs = 2
+> 
+>     class depth:
+>         use_camera = False
+>         camera_num_envs = 192
+>         camera_terrain_num_rows = 10
+>         camera_terrain_num_cols = 20
+> 
+>         position = [0.27, 0, 0.03]  # front camera
+>         angle = [-5, 5]  # positive pitch down
+> 
+>         update_interval = 5  # 5 works without retraining, 8 worse
+> 
+>         original = (106, 60)
+>         resized = (87, 58)
+>         horizontal_fov = 87
+>         buffer_len = 2
+>         
+>         near_clip = 0
+>         far_clip = 2
+>         dis_noise = 0.0
+>         
+>         scale = 1
+>         invert = True
+> 
+>     class normalization:
+>         class obs_scales:
+>             lin_vel = 2.0
+>             ang_vel = 0.25
+>             dof_pos = 1.0
+>             dof_vel = 0.05
+>             height_measurements = 5.0
+>         clip_observations = 100.
+>         clip_actions = 1.2
+>     class noise:
+>         add_noise = False
+>         noise_level = 1.0 # scales other values
+>         quantize_height = True
+>         class noise_scales:
+>             rotation = 0.0
+>             dof_pos = 0.01
+>             dof_vel = 0.05
+>             lin_vel = 0.05
+>             ang_vel = 0.05
+>             gravity = 0.02
+>             height_measurements = 0.02
+45c137,146
+<         horizontal_scale = 0.1 # [m]
+---
+>         # mesh_type = None
+>         hf2mesh_method = "grid"  # grid or fast
+>         max_error = 0.1 # for fast
+>         max_error_camera = 2
+> 
+>         y_range = [-0.4, 0.4]
+>         
+>         edge_width_thresh = 0.05
+>         horizontal_scale = 0.05 # [m] influence computation time by a lot
+>         horizontal_scale_camera = 0.1
+47c148,153
+<         border_size = 25 # [m]
+---
+>         border_size = 5 # [m]
+>         height = [0.02, 0.06]
+>         simplify_grid = False
+>         gap_size = [0.02, 0.1]
+>         stepping_stone_distance = [0.02, 0.08]
+>         downsampled_scale = 0.075
+48a155,158
+> 
+>         all_vertical = False
+>         no_flat = True
+>         
+52d161
+<         # rough terrain only:
+54,55c163,166
+<         measured_points_x = [-0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8] # 1mx1.6m rectangle (without center line)
+<         measured_points_y = [-0.5, -0.4, -0.3, -0.2, -0.1, 0., 0.1, 0.2, 0.3, 0.4, 0.5]
+---
+>         measured_points_x = [-0.45, -0.3, -0.15, 0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1.05, 1.2] # 1mx1.6m rectangle (without center line)
+>         measured_points_y = [-0.75, -0.6, -0.45, -0.3, -0.15, 0., 0.15, 0.3, 0.45, 0.6, 0.75]
+>         measure_horizontal_noise = 0.0
+> 
+59,64c170,196
+<         terrain_length = 8.
+<         terrain_width = 8.
+<         num_rows= 10 # number of terrain rows (levels)
+<         num_cols = 20 # number of terrain cols (types)
+<         # terrain types: [smooth slope, rough slope, stairs up, stairs down, discrete]
+<         terrain_proportions = [0.1, 0.1, 0.35, 0.25, 0.2]
+---
+>         terrain_length = 18.
+>         terrain_width = 4
+>         num_rows= 10 # number of terrain rows (levels)  # spreaded is benifitiall !
+>         num_cols = 40 # number of terrain cols (types)
+>         
+>         terrain_dict = {"smooth slope": 0., 
+>                         "rough slope up": 0.0,
+>                         "rough slope down": 0.0,
+>                         "rough stairs up": 0., 
+>                         "rough stairs down": 0., 
+>                         "discrete": 0., 
+>                         "stepping stones": 0.0,
+>                         "gaps": 0., 
+>                         "smooth flat": 0,
+>                         "pit": 0.0,
+>                         "wall": 0.0,
+>                         "platform": 0.,
+>                         "large stairs up": 0.,
+>                         "large stairs down": 0.,
+>                         "parkour": 0.2,
+>                         "parkour_hurdle": 0.2,
+>                         "parkour_flat": 0.2,
+>                         "parkour_step": 0.2,
+>                         "parkour_gap": 0.2,
+>                         "demo": 0.0,}
+>         terrain_proportions = list(terrain_dict.values())
+>         
+66c198,201
+<         slope_treshold = 0.75 # slopes above this threshold will be corrected to vertical surfaces
+---
+>         slope_treshold = 1.5# slopes above this threshold will be corrected to vertical surfaces
+>         origin_zero_z = True
+> 
+>         num_goals = 8
+72c207
+<         resampling_time = 10. # time before command are changed[s]
+---
+>         resampling_time = 6. # time before command are changed[s]
+73a209,212
+>         
+>         lin_vel_clip = 0.2
+>         ang_vel_clip = 0.4
+>         # Easy ranges
+75,78c214,232
+<             lin_vel_x = [-1.0, 1.0] # min max [m/s]
+<             lin_vel_y = [-1.0, 1.0]   # min max [m/s]
+<             ang_vel_yaw = [-1, 1]    # min max [rad/s]
+<             heading = [-3.14, 3.14]
+---
+>             lin_vel_x = [0., 1.5] # min max [m/s]
+>             lin_vel_y = [0.0, 0.0]   # min max [m/s]
+>             ang_vel_yaw = [0, 0]    # min max [rad/s]
+>             heading = [0, 0]
+> 
+>         # Easy ranges
+>         class max_ranges:
+>             lin_vel_x = [0.3, 0.8] # min max [m/s]
+>             lin_vel_y = [-0.3, 0.3]#[0.15, 0.6]   # min max [m/s]
+>             ang_vel_yaw = [-0, 0]    # min max [rad/s]
+>             heading = [-1.6, 1.6]
+> 
+>         class crclm_incremnt:
+>             lin_vel_x = 0.1 # min max [m/s]
+>             lin_vel_y = 0.1  # min max [m/s]
+>             ang_vel_yaw = 0.1    # min max [rad/s]
+>             heading = 0.5
+> 
+>         waypoint_delta = 0.7
+101d254
+<         name = "legged_robot"  # actor name
+123,125c276,280
+<         friction_range = [0.5, 1.25]
+<         randomize_base_mass = False
+<         added_mass_range = [-1., 1.]
+---
+>         friction_range = [0.6, 2.]
+>         randomize_base_mass = True
+>         added_mass_range = [0., 3.]
+>         randomize_base_com = True
+>         added_com_range = [-0.2, 0.2]
+127,128c282,286
+<         push_interval_s = 15
+<         max_push_vel_xy = 1.
+---
+>         push_interval_s = 8
+>         max_push_vel_xy = 0.5
+> 
+>         randomize_motor = True
+>         motor_strength_range = [0.8, 1.2]
+129a288,294
+>         delay_update_global_steps = 24 * 8000
+>         action_delay = False
+>         action_curr_step = [1, 1]
+>         action_curr_step_scratch = [0, 1]
+>         action_delay_view = 1
+>         action_buf_len = 8
+>         
+132,135c297,301
+<             termination = -0.0
+<             tracking_lin_vel = 1.0
+<             tracking_ang_vel = 0.5
+<             lin_vel_z = -2.0
+---
+>             # tracking rewards
+>             tracking_goal_vel = 1.5
+>             tracking_yaw = 0.5
+>             # regularization rewards
+>             lin_vel_z = -1.0
+137,139c303
+<             orientation = -0.
+<             torques = -0.00001
+<             dof_vel = -0.
+---
+>             orientation = -1.
+141,147c305,313
+<             base_height = -0. 
+<             feet_air_time =  1.0
+<             collision = -1.
+<             feet_stumble = -0.0 
+<             action_rate = -0.01
+<             stand_still = -0.
+< 
+---
+>             collision = -10.
+>             action_rate = -0.1
+>             delta_torques = -1.0e-7
+>             torques = -0.00001
+>             hip_pos = -0.5
+>             dof_error = -0.04
+>             feet_stumble = -1
+>             feet_edge = -1
+>             
+149c315
+<         tracking_sigma = 0.25 # tracking reward = exp(-error^2/sigma)
+---
+>         tracking_sigma = 0.2 # tracking reward = exp(-error^2/sigma)
+151,152c317,318
+<         soft_dof_vel_limit = 1.
+<         soft_torque_limit = 1.
+---
+>         soft_dof_vel_limit = 1
+>         soft_torque_limit = 0.4
+154c320,322
+<         max_contact_force = 100. # forces above this value are penalized
+---
+>         max_contact_force = 40. # forces above this value are penalized
+> 
+> 
+156,164d323
+<     class normalization:
+<         class obs_scales:
+<             lin_vel = 2.0
+<             ang_vel = 0.25
+<             dof_pos = 1.0
+<             dof_vel = 0.05
+<             height_measurements = 5.0
+<         clip_observations = 100.
+<         clip_actions = 100.
+166,175d324
+<     class noise:
+<         add_noise = True
+<         noise_level = 1.0 # scales other values
+<         class noise_scales:
+<             dof_pos = 0.01
+<             dof_vel = 1.5
+<             lin_vel = 0.1
+<             ang_vel = 0.2
+<             gravity = 0.05
+<             height_measurements = 0.1
+204a354
+>  
+206a357,358
+>         continue_from_last_std = True
+>         scan_encoder_dims = [128, 64, 32]
+208a361
+>         priv_encoder_dims = [64, 20]
+211,214c364,369
+<         # rnn_type = 'lstm'
+<         # rnn_hidden_size = 512
+<         # rnn_num_layers = 1
+<         
+---
+>         rnn_type = 'lstm'
+>         rnn_hidden_size = 512
+>         rnn_num_layers = 1
+> 
+>         tanh_encoder_output = False
+>     
+223c378
+<         learning_rate = 1.e-3 #5.e-4
+---
+>         learning_rate = 2.e-4 #5.e-4
+228a384,403
+>         # dagger params
+>         dagger_update_freq = 20
+>         priv_reg_coef_schedual = [0, 0.1, 2000, 3000]
+>         priv_reg_coef_schedual_resume = [0, 0.1, 0, 1]
+>     
+>     class depth_encoder:
+>         if_depth = LeggedRobotCfg.depth.use_camera
+>         depth_shape = LeggedRobotCfg.depth.resized
+>         buffer_len = LeggedRobotCfg.depth.buffer_len
+>         hidden_dims = 512
+>         learning_rate = 1.e-3
+>         num_steps_per_env = LeggedRobotCfg.depth.update_interval * 24
+> 
+>     class estimator:
+>         train_with_estimated_states = True
+>         learning_rate = 1.e-4
+>         hidden_dims = [128, 64]
+>         priv_states_dim = LeggedRobotCfg.env.n_priv
+>         num_prop = LeggedRobotCfg.env.n_proprio
+>         num_scan = LeggedRobotCfg.env.n_scan
+234c409
+<         max_iterations = 1500 # number of policy updates
+---
+>         max_iterations = 50000 # number of policy updates
+237,238c412,413
+<         save_interval = 50 # check for potential saves every this many iterations
+<         experiment_name = 'test'
+---
+>         save_interval = 100 # check for potential saves every this many iterations
+>         experiment_name = 'rough_a1'
+diff -r legged_gym/envs/base/legged_robot.py /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/base/legged_robot.py
+40c40
+< import torch
+---
+> import torch, torchvision
+47c47
+< from legged_gym.utils.math import quat_apply_yaw, wrap_to_pi, torch_rand_sqrt_float
+---
+> from legged_gym.utils.math import *
+48a49
+> from scipy.spatial.transform import Rotation as R
+50a52,77
+> from tqdm import tqdm
+> import cv2
+> import matplotlib.pyplot as plt
+> 
+> def euler_from_quaternion(quat_angle):
+>         """
+>         Convert a quaternion into euler angles (roll, pitch, yaw)
+>         roll is rotation around x in radians (counterclockwise)
+>         pitch is rotation around y in radians (counterclockwise)
+>         yaw is rotation around z in radians (counterclockwise)
+>         """
+>         x = quat_angle[:,0]; y = quat_angle[:,1]; z = quat_angle[:,2]; w = quat_angle[:,3]
+>         t0 = +2.0 * (w * x + y * z)
+>         t1 = +1.0 - 2.0 * (x * x + y * y)
+>         roll_x = torch.atan2(t0, t1)
+>      
+>         t2 = +2.0 * (w * y - z * x)
+>         t2 = torch.clip(t2, -1, 1)
+>         pitch_y = torch.asin(t2)
+>      
+>         t3 = +2.0 * (w * z + x * y)
+>         t4 = +1.0 - 2.0 * (y * y + z * z)
+>         yaw_z = torch.atan2(t3, t4)
+>      
+>         return roll_x, pitch_y, yaw_z # in radians
+> 
+68c95
+<         self.debug_viz = False
+---
+>         self.debug_viz = True
+72a100,102
+>         self.resize_transform = torchvision.transforms.Resize((self.cfg.depth.resized[1], self.cfg.depth.resized[0]), 
+>                                                               interpolation=torchvision.transforms.InterpolationMode.BICUBIC)
+>         
+77a108,112
+>         self.global_counter = 0
+>         self.total_env_steps_counter = 0
+> 
+>         self.reset_idx(torch.arange(self.num_envs, device=self.device))
+>         self.post_physics_step()
+85c120,135
+<         clip_actions = self.cfg.normalization.clip_actions
+---
+>         actions = self.reindex(actions)
+> 
+>         actions.to(self.device)
+>         self.action_history_buf = torch.cat([self.action_history_buf[:, 1:].clone(), actions[:, None, :].clone()], dim=1)
+>         if self.cfg.domain_rand.action_delay:
+>             if self.global_counter % self.cfg.domain_rand.delay_update_global_steps == 0:
+>                 if len(self.cfg.domain_rand.action_curr_step) != 0:
+>                     self.delay = torch.tensor(self.cfg.domain_rand.action_curr_step.pop(0), device=self.device, dtype=torch.float)
+>             if self.viewer:
+>                 self.delay = torch.tensor(self.cfg.domain_rand.action_delay_view, device=self.device, dtype=torch.float)
+>             indices = -self.delay -1
+>             actions = self.action_history_buf[:, indices.long()] # delay for 1/50=20ms
+> 
+>         self.global_counter += 1
+>         self.total_env_steps_counter += 1
+>         clip_actions = self.cfg.normalization.clip_actions / self.cfg.control.action_scale
+87d136
+<         # step physics and render each frame
+88a138
+> 
+93,94c143
+<             if self.device == 'cpu':
+<                 self.gym.fetch_results(self.sim, True)
+---
+>             self.gym.fetch_results(self.sim, True)
+98d146
+<         # return clipped obs, clipped states (None), rewards, dones and infos
+102a151,155
+>         self.extras["delta_yaw_ok"] = self.delta_yaw < 0.6
+>         if self.cfg.depth.use_camera and self.global_counter % self.cfg.depth.update_interval == 0:
+>             self.extras["depth"] = self.depth_buffer[:, -2]  # have already selected last one
+>         else:
+>             self.extras["depth"] = None
+104a158,224
+>     def get_history_observations(self):
+>         return self.obs_history_buf
+>     
+>     def normalize_depth_image(self, depth_image):
+>         depth_image = depth_image * -1
+>         depth_image = (depth_image - self.cfg.depth.near_clip) / (self.cfg.depth.far_clip - self.cfg.depth.near_clip)  - 0.5
+>         return depth_image
+>     
+>     def process_depth_image(self, depth_image, env_id):
+>         # These operations are replicated on the hardware
+>         depth_image = self.crop_depth_image(depth_image)
+>         depth_image += self.cfg.depth.dis_noise * 2 * (torch.rand(1)-0.5)[0]
+>         depth_image = torch.clip(depth_image, -self.cfg.depth.far_clip, -self.cfg.depth.near_clip)
+>         depth_image = self.resize_transform(depth_image[None, :]).squeeze()
+>         depth_image = self.normalize_depth_image(depth_image)
+>         return depth_image
+> 
+>     def crop_depth_image(self, depth_image):
+>         # crop 30 pixels from the left and right and and 20 pixels from bottom and return croped image
+>         return depth_image[:-2, 4:-4]
+> 
+>     def update_depth_buffer(self):
+>         if not self.cfg.depth.use_camera:
+>             return
+> 
+>         if self.global_counter % self.cfg.depth.update_interval != 0:
+>             return
+>         self.gym.step_graphics(self.sim) # required to render in headless mode
+>         self.gym.render_all_camera_sensors(self.sim)
+>         self.gym.start_access_image_tensors(self.sim)
+> 
+>         for i in range(self.num_envs):
+>             depth_image_ = self.gym.get_camera_image_gpu_tensor(self.sim, 
+>                                                                 self.envs[i], 
+>                                                                 self.cam_handles[i],
+>                                                                 gymapi.IMAGE_DEPTH)
+>             
+>             depth_image = gymtorch.wrap_tensor(depth_image_)
+>             depth_image = self.process_depth_image(depth_image, i)
+> 
+>             init_flag = self.episode_length_buf <= 1
+>             if init_flag[i]:
+>                 self.depth_buffer[i] = torch.stack([depth_image] * self.cfg.depth.buffer_len, dim=0)
+>             else:
+>                 self.depth_buffer[i] = torch.cat([self.depth_buffer[i, 1:], depth_image.to(self.device).unsqueeze(0)], dim=0)
+> 
+>         self.gym.end_access_image_tensors(self.sim)
+> 
+>     def _update_goals(self):
+>         next_flag = self.reach_goal_timer > self.cfg.env.reach_goal_delay / self.dt
+>         self.cur_goal_idx[next_flag] += 1
+>         self.reach_goal_timer[next_flag] = 0
+> 
+>         self.reached_goal_ids = torch.norm(self.root_states[:, :2] - self.cur_goals[:, :2], dim=1) < self.cfg.env.next_goal_threshold
+>         self.reach_goal_timer[self.reached_goal_ids] += 1
+> 
+>         self.target_pos_rel = self.cur_goals[:, :2] - self.root_states[:, :2]
+>         self.next_target_pos_rel = self.next_goals[:, :2] - self.root_states[:, :2]
+> 
+>         norm = torch.norm(self.target_pos_rel, dim=-1, keepdim=True)
+>         target_vec_norm = self.target_pos_rel / (norm + 1e-5)
+>         self.target_yaw = torch.atan2(target_vec_norm[:, 1], target_vec_norm[:, 0])
+> 
+>         norm = torch.norm(self.next_target_pos_rel, dim=-1, keepdim=True)
+>         target_vec_norm = self.next_target_pos_rel / (norm + 1e-5)
+>         self.next_target_yaw = torch.atan2(target_vec_norm[:, 1], target_vec_norm[:, 0])
+> 
+111a232,233
+>         self.gym.refresh_rigid_body_state_tensor(self.sim)
+>         self.gym.refresh_force_sensor_tensor(self.sim)
+120a243
+>         self.base_lin_acc = (self.root_states[:, 7:10] - self.last_root_vel[:, :3]) / self.dt
+121a245,252
+>         self.roll, self.pitch, self.yaw = euler_from_quaternion(self.base_quat)
+> 
+>         contact = torch.norm(self.contact_forces[:, self.feet_indices], dim=-1) > 2.
+>         self.contact_filt = torch.logical_or(contact, self.last_contacts) 
+>         self.last_contacts = contact
+>         
+>         # self._update_jump_schedule()
+>         self._update_goals()
+128a260,265
+> 
+>         self.cur_goals = self._gather_cur_goals()
+>         self.next_goals = self._gather_cur_goals(future=1)
+> 
+>         self.update_depth_buffer()
+> 
+132a270
+>         self.last_torques[:] = self.torques[:]
+136c274,288
+<             self._draw_debug_vis()
+---
+>             self.gym.clear_lines(self.viewer)
+>             # self._draw_height_samples()
+>             self._draw_goals()
+>             self._draw_feet()
+>             if self.cfg.depth.use_camera:
+>                 window_name = "Depth Image"
+>                 cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+>                 cv2.imshow("Depth Image", self.depth_buffer[self.lookat_id, -1].cpu().numpy() + 0.5)
+>                 cv2.waitKey(1)
+> 
+>     def reindex_feet(self, vec):
+>         return vec[:, [1, 0, 3, 2]]
+> 
+>     def reindex(self, vec):
+>         return vec[:, [3, 4, 5, 0, 1, 2, 9, 10, 11, 6, 7, 8]]
+141c293,298
+<         self.reset_buf = torch.any(torch.norm(self.contact_forces[:, self.termination_contact_indices, :], dim=-1) > 1., dim=1)
+---
+>         self.reset_buf = torch.zeros((self.num_envs, ), dtype=torch.bool, device=self.device)
+>         roll_cutoff = torch.abs(self.roll) > 1.5
+>         pitch_cutoff = torch.abs(self.pitch) > 1.5
+>         reach_goal_cutoff = self.cur_goal_idx >= self.cfg.terrain.num_goals
+>         height_cutoff = self.root_states[:, 2] < -0.25
+> 
+142a300,301
+>         self.time_out_buf |= reach_goal_cutoff
+> 
+143a303,305
+>         self.reset_buf |= roll_cutoff
+>         self.reset_buf |= pitch_cutoff
+>         self.reset_buf |= height_cutoff
+163c325
+<         
+---
+> 
+167d328
+< 
+168a330,332
+>         self.gym.simulate(self.sim)
+>         self.gym.fetch_results(self.sim, True)
+>         self.gym.refresh_rigid_body_state_tensor(self.sim)
+172a337,338
+>         self.last_torques[env_ids] = 0.
+>         self.last_root_vel[:] = 0.
+174d339
+<         self.episode_length_buf[env_ids] = 0
+175a341,346
+>         self.obs_history_buf[env_ids, :, :] = 0.  # reset obs history buffer TODO no 0s
+>         self.contact_buf[env_ids, :, :] = 0.
+>         self.action_history_buf[env_ids, :, :] = 0.
+>         self.cur_goal_idx[env_ids] = 0
+>         self.reach_goal_timer[env_ids] = 0
+> 
+180a352,353
+>         self.episode_length_buf[env_ids] = 0
+> 
+189c362
+<     
+---
+>         
+202a376
+>         
+210c384,385
+<         """ Computes observations
+---
+>         """ 
+>         Computes observations
+212,220c387,414
+<         self.obs_buf = torch.cat((  self.base_lin_vel * self.obs_scales.lin_vel,
+<                                     self.base_ang_vel  * self.obs_scales.ang_vel,
+<                                     self.projected_gravity,
+<                                     self.commands[:, :3] * self.commands_scale,
+<                                     (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos,
+<                                     self.dof_vel * self.obs_scales.dof_vel,
+<                                     self.actions
+<                                     ),dim=-1)
+<         # add perceptive inputs if not blind
+---
+>         imu_obs = torch.stack((self.roll, self.pitch), dim=1)
+>         if self.global_counter % 5 == 0:
+>             self.delta_yaw = self.target_yaw - self.yaw
+>             self.delta_next_yaw = self.next_target_yaw - self.yaw
+>         obs_buf = torch.cat((#skill_vector, 
+>                             self.base_ang_vel  * self.obs_scales.ang_vel,   #[1,3]
+>                             imu_obs,    #[1,2]
+>                             0*self.delta_yaw[:, None], 
+>                             self.delta_yaw[:, None],
+>                             self.delta_next_yaw[:, None],
+>                             0*self.commands[:, 0:2], 
+>                             self.commands[:, 0:1],  #[1,1]
+>                             (self.env_class != 17).float()[:, None], 
+>                             (self.env_class == 17).float()[:, None],
+>                             self.reindex((self.dof_pos - self.default_dof_pos_all) * self.obs_scales.dof_pos),
+>                             self.reindex(self.dof_vel * self.obs_scales.dof_vel),
+>                             self.reindex(self.action_history_buf[:, -1]),
+>                             self.reindex_feet(self.contact_filt.float()-0.5),
+>                             ),dim=-1)
+>         priv_explicit = torch.cat((self.base_lin_vel * self.obs_scales.lin_vel,
+>                                    0 * self.base_lin_vel,
+>                                    0 * self.base_lin_vel), dim=-1)
+>         priv_latent = torch.cat((
+>             self.mass_params_tensor,
+>             self.friction_coeffs_tensor,
+>             self.motor_strength[0] - 1, 
+>             self.motor_strength[1] - 1
+>         ), dim=-1)
+222,226c416,443
+<             heights = torch.clip(self.root_states[:, 2].unsqueeze(1) - 0.5 - self.measured_heights, -1, 1.) * self.obs_scales.height_measurements
+<             self.obs_buf = torch.cat((self.obs_buf, heights), dim=-1)
+<         # add noise if needed
+<         if self.add_noise:
+<             self.obs_buf += (2 * torch.rand_like(self.obs_buf) - 1) * self.noise_scale_vec
+---
+>             heights = torch.clip(self.root_states[:, 2].unsqueeze(1) - 0.3 - self.measured_heights, -1, 1.)
+>             self.obs_buf = torch.cat([obs_buf, heights, priv_explicit, priv_latent, self.obs_history_buf.view(self.num_envs, -1)], dim=-1)
+>         else:
+>             self.obs_buf = torch.cat([obs_buf, priv_explicit, priv_latent, self.obs_history_buf.view(self.num_envs, -1)], dim=-1)
+>         obs_buf[:, 6:8] = 0  # mask yaw in proprioceptive history
+>         self.obs_history_buf = torch.where(
+>             (self.episode_length_buf <= 1)[:, None, None], 
+>             torch.stack([obs_buf] * self.cfg.env.history_len, dim=1),
+>             torch.cat([
+>                 self.obs_history_buf[:, 1:],
+>                 obs_buf.unsqueeze(1)
+>             ], dim=1)
+>         )
+> 
+>         self.contact_buf = torch.where(
+>             (self.episode_length_buf <= 1)[:, None, None], 
+>             torch.stack([self.contact_filt.float()] * self.cfg.env.contact_buf_len, dim=1),
+>             torch.cat([
+>                 self.contact_buf[:, 1:],
+>                 self.contact_filt.float().unsqueeze(1)
+>             ], dim=1)
+>         )
+>         
+>         
+>     def get_noisy_measurement(self, x, scale):
+>         if self.cfg.noise.add_noise:
+>             x = x + (2.0 * torch.rand_like(x) - 1) * scale * self.cfg.noise.noise_level
+>         return x
+231a449,450
+>         if self.cfg.depth.use_camera:
+>             self.graphics_device_id = self.sim_device_id  # required in headless mode
+233a453,455
+>         start = time()
+>         print("*"*80)
+>         print("Start creating ground...")
+243a466,467
+>         print("Finished creating ground. Time taken {:.2f} s".format(time() - start))
+>         print("*"*80)
+274d497
+< 
+308,314c531
+<         # if env_id==0:
+<         #     sum = 0
+<         #     for i, p in enumerate(props):
+<         #         sum += p.mass
+<         #         print(f"Mass of body {i}: {p.mass} (before randomization)")
+<         #     print(f"Total mass {sum} (before randomization)")
+<         # randomize base mass
+---
+>         # No need to use tensors as only called upon env creation
+316,318c533,545
+<             rng = self.cfg.domain_rand.added_mass_range
+<             props[0].mass += np.random.uniform(rng[0], rng[1])
+<         return props
+---
+>             rng_mass = self.cfg.domain_rand.added_mass_range
+>             rand_mass = np.random.uniform(rng_mass[0], rng_mass[1], size=(1, ))
+>             props[0].mass += rand_mass
+>         else:
+>             rand_mass = np.zeros((1, ))
+>         if self.cfg.domain_rand.randomize_base_com:
+>             rng_com = self.cfg.domain_rand.added_com_range
+>             rand_com = np.random.uniform(rng_com[0], rng_com[1], size=(3, ))
+>             props[0].com += gymapi.Vec3(*rand_com)
+>         else:
+>             rand_com = np.zeros(3)
+>         mass_params = np.concatenate([rand_mass, rand_com])
+>         return props, mass_params
+325,326c552,554
+<         env_ids = (self.episode_length_buf % int(self.cfg.commands.resampling_time / self.dt)==0).nonzero(as_tuple=False).flatten()
+<         self._resample_commands(env_ids)
+---
+>         env_ids = (self.episode_length_buf % int(self.cfg.commands.resampling_time / self.dt)==0)
+>         self._resample_commands(env_ids.nonzero(as_tuple=False).flatten())
+> 
+330,331c558,560
+<             self.commands[:, 2] = torch.clip(0.5*wrap_to_pi(self.commands[:, 3] - heading), -1., 1.)
+< 
+---
+>             self.commands[:, 2] = torch.clip(0.8*wrap_to_pi(self.commands[:, 3] - heading), -1., 1.)
+>             self.commands[:, 2] *= torch.abs(self.commands[:, 2]) > self.cfg.commands.ang_vel_clip
+>         
+333c562,563
+<             self.measured_heights = self._get_heights()
+---
+>             if self.global_counter % self.cfg.depth.update_interval == 0:
+>                 self.measured_heights = self._get_heights()
+335a566,568
+>         
+>     def _gather_cur_goals(self, future=0):
+>         return self.env_goals.gather(1, (self.cur_goal_idx[:, None, None]+future).expand(-1, -1, self.env_goals.shape[-1])).squeeze(1)
+344d576
+<         self.commands[env_ids, 1] = torch_rand_float(self.command_ranges["lin_vel_y"][0], self.command_ranges["lin_vel_y"][1], (len(env_ids), 1), device=self.device).squeeze(1)
+348a581
+>             self.commands[env_ids, 2] *= torch.abs(self.commands[env_ids, 2]) > self.cfg.commands.ang_vel_clip
+351c584
+<         self.commands[env_ids, :2] *= (torch.norm(self.commands[env_ids, :2], dim=1) > 0.2).unsqueeze(1)
+---
+>         self.commands[env_ids, :2] *= torch.abs(self.commands[env_ids, 0:1]) > self.cfg.commands.lin_vel_clip
+368c601,605
+<             torques = self.p_gains*(actions_scaled + self.default_dof_pos - self.dof_pos) - self.d_gains*self.dof_vel
+---
+>             if not self.cfg.domain_rand.randomize_motor:  # TODO add strength to gain directly
+>                 torques = self.p_gains*(actions_scaled + self.default_dof_pos_all - self.dof_pos) - self.d_gains*self.dof_vel
+>             else:
+>                 torques = self.motor_strength[0] * self.p_gains*(actions_scaled + self.default_dof_pos_all - self.dof_pos) - self.motor_strength[1] * self.d_gains*self.dof_vel
+>                 
+385c622
+<         self.dof_pos[env_ids] = self.default_dof_pos * torch_rand_float(0.5, 1.5, (len(env_ids), self.num_dof), device=self.device)
+---
+>         self.dof_pos[env_ids] = self.default_dof_pos + torch_rand_float(0., 0.9, (len(env_ids), self.num_dof), device=self.device)
+403c640,652
+<             self.root_states[env_ids, :2] += torch_rand_float(-1., 1., (len(env_ids), 2), device=self.device) # xy position within 1m of the center
+---
+>             if self.cfg.env.randomize_start_pos:
+>                 self.root_states[env_ids, :2] += torch_rand_float(-0.3, 0.3, (len(env_ids), 2), device=self.device) # xy position within 1m of the center
+>             if self.cfg.env.randomize_start_yaw:
+>                 rand_yaw = self.cfg.env.rand_yaw_range*torch_rand_float(-1, 1, (len(env_ids), 1), device=self.device).squeeze(1)
+>                 if self.cfg.env.randomize_start_pitch:
+>                     rand_pitch = self.cfg.env.rand_pitch_range*torch_rand_float(-1, 1, (len(env_ids), 1), device=self.device).squeeze(1)
+>                 else:
+>                     rand_pitch = torch.zeros(len(env_ids), device=self.device)
+>                 quat = quat_from_euler_xyz(0*rand_yaw, rand_pitch, rand_yaw) 
+>                 self.root_states[env_ids, 3:7] = quat[:, :]  
+>             if self.cfg.env.randomize_start_y:
+>                 self.root_states[env_ids, 1] += self.cfg.env.rand_y_range * torch_rand_float(-1, 1, (len(env_ids), 1), device=self.device).squeeze(1)
+>             
+407,408d655
+<         # base velocities
+<         self.root_states[env_ids, 7:13] = torch_rand_float(-0.5, 0.5, (len(env_ids), 6), device=self.device) # [7:10]: lin vel, [10:13]: ang vel
+431,435c678,683
+<         distance = torch.norm(self.root_states[env_ids, :2] - self.env_origins[env_ids, :2], dim=1)
+<         # robots that walked far enough progress to harder terains
+<         move_up = distance > self.terrain.env_length / 2
+<         # robots that walked less than half of their required distance go to simpler terrains
+<         move_down = (distance < torch.norm(self.commands[env_ids, :2], dim=1)*self.max_episode_length_s*0.5) * ~move_up
+---
+>         
+>         dis_to_origin = torch.norm(self.root_states[env_ids, :2] - self.env_origins[env_ids, :2], dim=1)
+>         threshold = self.commands[env_ids, 0] * self.cfg.env.episode_length_s
+>         move_up =dis_to_origin > 0.8*threshold
+>         move_down = dis_to_origin < 0.4*threshold
+> 
+437c685
+<         # Robots that solve the last level are sent to a random one
+---
+>         # # Robots that solve the last level are sent to a random one
+442,478c690,696
+<     
+<     def update_command_curriculum(self, env_ids):
+<         """ Implements a curriculum of increasing commands
+< 
+<         Args:
+<             env_ids (List[int]): ids of environments being reset
+<         """
+<         # If the tracking reward is above 80% of the maximum, increase the range of commands
+<         if torch.mean(self.episode_sums["tracking_lin_vel"][env_ids]) / self.max_episode_length > 0.8 * self.reward_scales["tracking_lin_vel"]:
+<             self.command_ranges["lin_vel_x"][0] = np.clip(self.command_ranges["lin_vel_x"][0] - 0.5, -self.cfg.commands.max_curriculum, 0.)
+<             self.command_ranges["lin_vel_x"][1] = np.clip(self.command_ranges["lin_vel_x"][1] + 0.5, 0., self.cfg.commands.max_curriculum)
+< 
+< 
+<     def _get_noise_scale_vec(self, cfg):
+<         """ Sets a vector used to scale the noise added to the observations.
+<             [NOTE]: Must be adapted when changing the observations structure
+< 
+<         Args:
+<             cfg (Dict): Environment config file
+< 
+<         Returns:
+<             [torch.Tensor]: Vector of scales used to multiply a uniform distribution in [-1, 1]
+<         """
+<         noise_vec = torch.zeros_like(self.obs_buf[0])
+<         self.add_noise = self.cfg.noise.add_noise
+<         noise_scales = self.cfg.noise.noise_scales
+<         noise_level = self.cfg.noise.noise_level
+<         noise_vec[:3] = noise_scales.lin_vel * noise_level * self.obs_scales.lin_vel
+<         noise_vec[3:6] = noise_scales.ang_vel * noise_level * self.obs_scales.ang_vel
+<         noise_vec[6:9] = noise_scales.gravity * noise_level
+<         noise_vec[9:12] = 0. # commands
+<         noise_vec[12:24] = noise_scales.dof_pos * noise_level * self.obs_scales.dof_pos
+<         noise_vec[24:36] = noise_scales.dof_vel * noise_level * self.obs_scales.dof_vel
+<         noise_vec[36:48] = 0. # previous actions
+<         if self.cfg.terrain.measure_heights:
+<             noise_vec[48:235] = noise_scales.height_measurements* noise_level * self.obs_scales.height_measurements
+<         return noise_vec
+---
+>         self.env_class[env_ids] = self.terrain_class[self.terrain_levels[env_ids], self.terrain_types[env_ids]]
+>         
+>         temp = self.terrain_goals[self.terrain_levels, self.terrain_types]
+>         last_col = temp[:, -1].unsqueeze(1)
+>         self.env_goals[:] = torch.cat((temp, last_col.repeat(1, self.cfg.env.num_future_goal_obs, 1)), dim=1)[:]
+>         self.cur_goals = self._gather_cur_goals()
+>         self.next_goals = self._gather_cur_goals(future=1)
+487a706,707
+>         force_sensor_tensor = self.gym.acquire_force_sensor_tensor(self.sim)
+>         rigid_body_state_tensor = self.gym.acquire_rigid_body_state_tensor(self.sim)
+491c711,713
+< 
+---
+>         self.gym.refresh_rigid_body_state_tensor(self.sim)
+>         self.gym.refresh_force_sensor_tensor(self.sim)
+>             
+493a716
+>         self.rigid_body_states = gymtorch.wrap_tensor(rigid_body_state_tensor).view(self.num_envs, -1, 13)
+498a722
+>         self.force_sensor_tensor = gymtorch.wrap_tensor(force_sensor_tensor).view(self.num_envs, 4, 6) # for feet only, see create_env()
+504d727
+<         self.noise_scale_vec = self._get_noise_scale_vec(self.cfg)
+512a736
+>         self.last_torques = torch.zeros_like(self.torques)
+513a738,747
+> 
+>         self.reach_goal_timer = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
+> 
+>         str_rng = self.cfg.domain_rand.motor_strength_range
+>         self.motor_strength = (str_rng[1] - str_rng[0]) * torch.rand(2, self.num_envs, self.num_actions, dtype=torch.float, device=self.device, requires_grad=False) + str_rng[0]
+>         if self.cfg.env.history_encoding:
+>             self.obs_history_buf = torch.zeros(self.num_envs, self.cfg.env.history_len, self.cfg.env.n_proprio, device=self.device, dtype=torch.float)
+>         self.action_history_buf = torch.zeros(self.num_envs, self.cfg.domain_rand.action_buf_len, self.num_dofs, device=self.device, dtype=torch.float)
+>         self.contact_buf = torch.zeros(self.num_envs, self.cfg.env.contact_buf_len, 4, device=self.device, dtype=torch.float)
+> 
+514a749
+>         self._resample_commands(torch.arange(self.num_envs, device=self.device, requires_grad=False))
+526a762
+>         self.default_dof_pos_all = torch.zeros(self.num_envs, self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
+543a780,791
+>         self.default_dof_pos_all[:] = self.default_dof_pos[0]
+> 
+>         self.height_update_interval = 1
+>         if hasattr(self.cfg.env, "height_update_dt"):
+>             self.height_update_interval = int(self.cfg.env.height_update_dt / (self.cfg.sim.dt * self.cfg.control.decimation))
+> 
+>         if self.cfg.depth.use_camera:
+>             self.depth_buffer = torch.zeros(self.num_envs,  
+>                                             self.cfg.depth.buffer_len, 
+>                                             self.cfg.depth.resized[1], 
+>                                             self.cfg.depth.resized[0]).to(self.device)
+> 
+583,585c831,833
+<         hf_params.column_scale = self.terrain.cfg.horizontal_scale
+<         hf_params.row_scale = self.terrain.cfg.horizontal_scale
+<         hf_params.vertical_scale = self.terrain.cfg.vertical_scale
+---
+>         hf_params.column_scale = self.cfg.terrain.horizontal_scale
+>         hf_params.row_scale = self.cfg.terrain.horizontal_scale
+>         hf_params.vertical_scale = self.cfg.terrain.vertical_scale
+588,589c836,837
+<         hf_params.transform.p.x = -self.terrain.cfg.border_size 
+<         hf_params.transform.p.y = -self.terrain.cfg.border_size
+---
+>         hf_params.transform.p.x = -self.terrain.border
+>         hf_params.transform.p.y = -self.terrain.border
+595c843
+<         self.gym.add_heightfield(self.sim, self.terrain.heightsamples, hf_params)
+---
+>         self.gym.add_heightfield(self.sim, self.terrain.heightsamples.flatten(order='C'), hf_params)
+600c848,849
+<         # """
+---
+>             Very slow when horizontal_scale is small
+>         """
+611c860,862
+<         self.gym.add_triangle_mesh(self.sim, self.terrain.vertices.flatten(order='C'), self.terrain.triangles.flatten(order='C'), tm_params)   
+---
+>         print("Adding trimesh to simulation...")
+>         self.gym.add_triangle_mesh(self.sim, self.terrain.vertices.flatten(order='C'), self.terrain.triangles.flatten(order='C'), tm_params)  
+>         print("Trimesh added")
+612a864,889
+>         self.x_edge_mask = torch.tensor(self.terrain.x_edge_mask).view(self.terrain.tot_rows, self.terrain.tot_cols).to(self.device)
+> 
+> 
+>     def attach_camera(self, i, env_handle, actor_handle):
+>         if self.cfg.depth.use_camera:
+>             config = self.cfg.depth
+>             camera_props = gymapi.CameraProperties()
+>             camera_props.width = self.cfg.depth.original[0]
+>             camera_props.height = self.cfg.depth.original[1]
+>             camera_props.enable_tensors = True
+>             camera_horizontal_fov = self.cfg.depth.horizontal_fov 
+>             camera_props.horizontal_fov = camera_horizontal_fov
+> 
+>             camera_handle = self.gym.create_camera_sensor(env_handle, camera_props)
+>             self.cam_handles.append(camera_handle)
+>             
+>             local_transform = gymapi.Transform()
+>             
+>             camera_position = np.copy(config.position)
+>             camera_angle = np.random.uniform(config.angle[0], config.angle[1])
+>             
+>             local_transform.p = gymapi.Vec3(*camera_position)
+>             local_transform.r = gymapi.Quat.from_euler_zyx(0, np.radians(camera_angle), 0)
+>             root_handle = self.gym.get_actor_root_rigid_body_handle(env_handle, actor_handle)
+>             
+>             self.gym.attach_camera_to_body(camera_handle, env_handle, root_handle, local_transform, gymapi.FOLLOW_TRANSFORM)
+653a931,937
+> 
+> 
+>         for s in ["FR_foot", "FL_foot", "RR_foot", "RL_foot"]:
+>             feet_idx = self.gym.find_asset_rigid_body_index(robot_asset, s)
+>             sensor_pose = gymapi.Transform(gymapi.Vec3(0.0, 0.0, 0.0))
+>             self.gym.create_asset_force_sensor(robot_asset, feet_idx, sensor_pose)
+>         
+671c955,960
+<         for i in range(self.num_envs):
+---
+>         self.cam_handles = []
+>         self.cam_tensors = []
+>         self.mass_params_tensor = torch.zeros(self.num_envs, 4, dtype=torch.float, device=self.device, requires_grad=False)
+>         
+>         print("Creating env...")
+>         for i in tqdm(range(self.num_envs)):
+675,677c964,970
+<             pos[:2] += torch_rand_float(-1., 1., (2,1), device=self.device).squeeze(1)
+<             start_pose.p = gymapi.Vec3(*pos)
+<                 
+---
+>             if self.cfg.env.randomize_start_pos:
+>                 pos[:2] += torch_rand_float(-1., 1., (2,1), device=self.device).squeeze(1)
+>             if self.cfg.env.randomize_start_yaw:
+>                 rand_yaw_quat = gymapi.Quat.from_euler_zyx(0., 0., self.cfg.env.rand_yaw_range*np.random.uniform(-1, 1))
+>                 start_pose.r = rand_yaw_quat
+>             start_pose.p = gymapi.Vec3(*(pos + self.base_init_state[:3]))
+> 
+680c973
+<             actor_handle = self.gym.create_actor(env_handle, robot_asset, start_pose, self.cfg.asset.name, i, self.cfg.asset.self_collisions, 0)
+---
+>             anymal_handle = self.gym.create_actor(env_handle, robot_asset, start_pose, "anymal", i, self.cfg.asset.self_collisions, 0)
+682,685c975,978
+<             self.gym.set_actor_dof_properties(env_handle, actor_handle, dof_props)
+<             body_props = self.gym.get_actor_rigid_body_properties(env_handle, actor_handle)
+<             body_props = self._process_rigid_body_props(body_props, i)
+<             self.gym.set_actor_rigid_body_properties(env_handle, actor_handle, body_props, recomputeInertia=True)
+---
+>             self.gym.set_actor_dof_properties(env_handle, anymal_handle, dof_props)
+>             body_props = self.gym.get_actor_rigid_body_properties(env_handle, anymal_handle)
+>             body_props, mass_params = self._process_rigid_body_props(body_props, i)
+>             self.gym.set_actor_rigid_body_properties(env_handle, anymal_handle, body_props, recomputeInertia=True)
+687c980,986
+<             self.actor_handles.append(actor_handle)
+---
+>             self.actor_handles.append(anymal_handle)
+>             
+>             self.attach_camera(i, env_handle, anymal_handle)
+> 
+>             self.mass_params_tensor[i, :] = torch.from_numpy(mass_params).to(self.device).to(torch.float)
+>         if self.cfg.domain_rand.randomize_friction:
+>             self.friction_coeffs_tensor = self.friction_coeffs.to(self.device).to(torch.float).squeeze(-1)
+700a1000,1012
+>         hip_names = ["FR_hip_joint", "FL_hip_joint", "RR_hip_joint", "RL_hip_joint"]
+>         self.hip_indices = torch.zeros(len(hip_names), dtype=torch.long, device=self.device, requires_grad=False)
+>         for i, name in enumerate(hip_names):
+>             self.hip_indices[i] = self.dof_names.index(name)
+>         thigh_names = ["FR_thigh_joint", "FL_thigh_joint", "RR_thigh_joint", "RL_thigh_joint"]
+>         self.thigh_indices = torch.zeros(len(thigh_names), dtype=torch.long, device=self.device, requires_grad=False)
+>         for i, name in enumerate(thigh_names):
+>             self.thigh_indices[i] = self.dof_names.index(name)
+>         calf_names = ["FR_calf_joint", "FL_calf_joint", "RR_calf_joint", "RL_calf_joint"]
+>         self.calf_indices = torch.zeros(len(calf_names), dtype=torch.long, device=self.device, requires_grad=False)
+>         for i, name in enumerate(calf_names):
+>             self.calf_indices[i] = self.dof_names.index(name)
+>     
+707a1020
+>             self.env_class = torch.zeros(self.num_envs, device=self.device, requires_grad=False)
+715a1029,1041
+>             
+>             self.terrain_class = torch.from_numpy(self.terrain.terrain_type).to(self.device).to(torch.float)
+>             self.env_class[:] = self.terrain_class[self.terrain_levels, self.terrain_types]
+> 
+>             self.terrain_goals = torch.from_numpy(self.terrain.goals).to(self.device).to(torch.float)
+>             self.env_goals = torch.zeros(self.num_envs, self.cfg.terrain.num_goals + self.cfg.env.num_future_goal_obs, 3, device=self.device, requires_grad=False)
+>             self.cur_goal_idx = torch.zeros(self.num_envs, device=self.device, requires_grad=False, dtype=torch.long)
+>             temp = self.terrain_goals[self.terrain_levels, self.terrain_types]
+>             last_col = temp[:, -1].unsqueeze(1)
+>             self.env_goals[:] = torch.cat((temp, last_col.repeat(1, self.cfg.env.num_future_goal_obs, 1)), dim=1)[:]
+>             self.cur_goals = self._gather_cur_goals()
+>             self.next_goals = self._gather_cur_goals(future=1)
+> 
+732c1058,1064
+<         self.command_ranges = class_to_dict(self.cfg.commands.ranges)
+---
+>         reward_norm_factor = 1#np.sum(list(self.reward_scales.values()))
+>         for rew in self.reward_scales:
+>             self.reward_scales[rew] = self.reward_scales[rew] / reward_norm_factor
+>         if self.cfg.commands.curriculum:
+>             self.command_ranges = class_to_dict(self.cfg.commands.ranges)
+>         else:
+>             self.command_ranges = class_to_dict(self.cfg.commands.max_ranges)
+740c1072
+<     def _draw_debug_vis(self):
+---
+>     def _draw_height_samples(self):
+747d1078
+<         self.gym.clear_lines(self.viewer)
+750,760c1081,1139
+<         for i in range(self.num_envs):
+<             base_pos = (self.root_states[i, :3]).cpu().numpy()
+<             heights = self.measured_heights[i].cpu().numpy()
+<             height_points = quat_apply_yaw(self.base_quat[i].repeat(heights.shape[0]), self.height_points[i]).cpu().numpy()
+<             for j in range(heights.shape[0]):
+<                 x = height_points[j, 0] + base_pos[0]
+<                 y = height_points[j, 1] + base_pos[1]
+<                 z = heights[j]
+<                 sphere_pose = gymapi.Transform(gymapi.Vec3(x, y, z), r=None)
+<                 gymutil.draw_lines(sphere_geom, self.gym, self.viewer, self.envs[i], sphere_pose) 
+< 
+---
+>         i = self.lookat_id
+>         base_pos = (self.root_states[i, :3]).cpu().numpy()
+>         heights = self.measured_heights[i].cpu().numpy()
+>         height_points = quat_apply_yaw(self.base_quat[i].repeat(heights.shape[0]), self.height_points[i]).cpu().numpy()
+>         for j in range(heights.shape[0]):
+>             x = height_points[j, 0] + base_pos[0]
+>             y = height_points[j, 1] + base_pos[1]
+>             z = heights[j]
+>             sphere_pose = gymapi.Transform(gymapi.Vec3(x, y, z), r=None)
+>             gymutil.draw_lines(sphere_geom, self.gym, self.viewer, self.envs[i], sphere_pose)
+>     
+>     def _draw_goals(self):
+>         sphere_geom = gymutil.WireframeSphereGeometry(0.1, 32, 32, None, color=(1, 0, 0))
+>         sphere_geom_cur = gymutil.WireframeSphereGeometry(0.1, 32, 32, None, color=(0, 0, 1))
+>         sphere_geom_reached = gymutil.WireframeSphereGeometry(self.cfg.env.next_goal_threshold, 32, 32, None, color=(0, 1, 0))
+>         goals = self.terrain_goals[self.terrain_levels[self.lookat_id], self.terrain_types[self.lookat_id]].cpu().numpy()
+>         for i, goal in enumerate(goals):
+>             goal_xy = goal[:2] + self.terrain.cfg.border_size
+>             pts = (goal_xy/self.terrain.cfg.horizontal_scale).astype(int)
+>             goal_z = self.height_samples[pts[0], pts[1]].cpu().item() * self.terrain.cfg.vertical_scale
+>             pose = gymapi.Transform(gymapi.Vec3(goal[0], goal[1], goal_z), r=None)
+>             if i == self.cur_goal_idx[self.lookat_id].cpu().item():
+>                 gymutil.draw_lines(sphere_geom_cur, self.gym, self.viewer, self.envs[self.lookat_id], pose)
+>                 if self.reached_goal_ids[self.lookat_id]:
+>                     gymutil.draw_lines(sphere_geom_reached, self.gym, self.viewer, self.envs[self.lookat_id], pose)
+>             else:
+>                 gymutil.draw_lines(sphere_geom, self.gym, self.viewer, self.envs[self.lookat_id], pose)
+>         
+>         if not self.cfg.depth.use_camera:
+>             sphere_geom_arrow = gymutil.WireframeSphereGeometry(0.02, 16, 16, None, color=(1, 0.35, 0.25))
+>             pose_robot = self.root_states[self.lookat_id, :3].cpu().numpy()
+>             for i in range(5):
+>                 norm = torch.norm(self.target_pos_rel, dim=-1, keepdim=True)
+>                 target_vec_norm = self.target_pos_rel / (norm + 1e-5)
+>                 pose_arrow = pose_robot[:2] + 0.1*(i+3) * target_vec_norm[self.lookat_id, :2].cpu().numpy()
+>                 pose = gymapi.Transform(gymapi.Vec3(pose_arrow[0], pose_arrow[1], pose_robot[2]), r=None)
+>                 gymutil.draw_lines(sphere_geom_arrow, self.gym, self.viewer, self.envs[self.lookat_id], pose)
+>             
+>             sphere_geom_arrow = gymutil.WireframeSphereGeometry(0.02, 16, 16, None, color=(0, 1, 0.5))
+>             for i in range(5):
+>                 norm = torch.norm(self.next_target_pos_rel, dim=-1, keepdim=True)
+>                 target_vec_norm = self.next_target_pos_rel / (norm + 1e-5)
+>                 pose_arrow = pose_robot[:2] + 0.2*(i+3) * target_vec_norm[self.lookat_id, :2].cpu().numpy()
+>                 pose = gymapi.Transform(gymapi.Vec3(pose_arrow[0], pose_arrow[1], pose_robot[2]), r=None)
+>                 gymutil.draw_lines(sphere_geom_arrow, self.gym, self.viewer, self.envs[self.lookat_id], pose)
+>         
+>     def _draw_feet(self):
+>         if hasattr(self, 'feet_at_edge'):
+>             non_edge_geom = gymutil.WireframeSphereGeometry(0.02, 16, 16, None, color=(0, 1, 0))
+>             edge_geom = gymutil.WireframeSphereGeometry(0.02, 16, 16, None, color=(1, 0, 0))
+> 
+>             feet_pos = self.rigid_body_states[:, self.feet_indices, :3]
+>             for i in range(4):
+>                 pose = gymapi.Transform(gymapi.Vec3(feet_pos[self.lookat_id, i, 0], feet_pos[self.lookat_id, i, 1], feet_pos[self.lookat_id, i, 2]), r=None)
+>                 if self.feet_at_edge[self.lookat_id, i]:
+>                     gymutil.draw_lines(edge_geom, self.gym, self.viewer, self.envs[i], pose)
+>                 else:
+>                     gymutil.draw_lines(non_edge_geom, self.gym, self.viewer, self.envs[i], pose)
+>     
+773,774c1152,1156
+<         points[:, :, 0] = grid_x.flatten()
+<         points[:, :, 1] = grid_y.flatten()
+---
+>         for i in range(self.num_envs):
+>             offset = torch_rand_float(-self.cfg.terrain.measure_horizontal_noise, self.cfg.terrain.measure_horizontal_noise, (self.num_height_points,2), device=self.device).squeeze()
+>             xy_noise = torch_rand_float(-self.cfg.terrain.measure_horizontal_noise, self.cfg.terrain.measure_horizontal_noise, (self.num_height_points,2), device=self.device).squeeze() + offset
+>             points[i, :, 0] = grid_x.flatten() + xy_noise[:, 0]
+>             points[i, :, 1] = grid_y.flatten() + xy_noise[:, 1]
+776a1159,1165
+>     def get_foot_contacts(self):
+>         foot_contacts_bool = self.contact_forces[:, self.feet_indices, 2] > 10
+>         if self.cfg.env.include_foot_contacts:
+>             return foot_contacts_bool
+>         else:
+>             return torch.zeros_like(foot_contacts_bool).to(self.device)
+> 
+815c1204,1236
+<     #------------ reward functions----------------
+---
+>     def _get_heights_points(self, coords, env_ids=None):
+>         if env_ids:
+>             points = coords[env_ids]
+>         else:
+>             points = coords
+> 
+>         points = (points/self.terrain.cfg.horizontal_scale).long()
+>         px = points[:, :, 0].view(-1)
+>         py = points[:, :, 1].view(-1)
+>         px = torch.clip(px, 0, self.height_samples.shape[0]-2)
+>         py = torch.clip(py, 0, self.height_samples.shape[1]-2)
+> 
+>         heights1 = self.height_samples[px, py]
+>         heights2 = self.height_samples[px+1, py]
+>         heights3 = self.height_samples[px, py+1]
+>         heights = torch.min(heights1, heights2)
+>         heights = torch.min(heights, heights3)
+> 
+>         return heights.view(self.num_envs, -1) * self.terrain.cfg.vertical_scale
+> 
+>     ################## parkour rewards ##################
+> 
+>     def _reward_tracking_goal_vel(self):
+>         norm = torch.norm(self.target_pos_rel, dim=-1, keepdim=True)
+>         target_vec_norm = self.target_pos_rel / (norm + 1e-5)
+>         cur_vel = self.root_states[:, 7:9]
+>         rew = torch.minimum(torch.sum(target_vec_norm * cur_vel, dim=-1), self.commands[:, 0]) / (self.commands[:, 0] + 1e-5)
+>         return rew
+> 
+>     def _reward_tracking_yaw(self):
+>         rew = torch.exp(-torch.abs(self.target_yaw - self.yaw))
+>         return rew
+>     
+817,818c1238,1240
+<         # Penalize z axis base linear velocity
+<         return torch.square(self.base_lin_vel[:, 2])
+---
+>         rew = torch.square(self.base_lin_vel[:, 2])
+>         rew[self.env_class != 17] *= 0.5
+>         return rew
+821d1242
+<         # Penalize xy axes base angular velocity
+823c1244
+<     
+---
+>      
+825,826c1246,1248
+<         # Penalize non flat base orientation
+<         return torch.sum(torch.square(self.projected_gravity[:, :2]), dim=1)
+---
+>         rew = torch.sum(torch.square(self.projected_gravity[:, :2]), dim=1)
+>         rew[self.env_class != 17] = 0.
+>         return rew
+828,840d1249
+<     def _reward_base_height(self):
+<         # Penalize base height away from target
+<         base_height = torch.mean(self.root_states[:, 2].unsqueeze(1) - self.measured_heights, dim=1)
+<         return torch.square(base_height - self.cfg.rewards.base_height_target)
+<     
+<     def _reward_torques(self):
+<         # Penalize torques
+<         return torch.sum(torch.square(self.torques), dim=1)
+< 
+<     def _reward_dof_vel(self):
+<         # Penalize dof velocities
+<         return torch.sum(torch.square(self.dof_vel), dim=1)
+<     
+842d1250
+<         # Penalize dof accelerations
+844,848c1252
+<     
+<     def _reward_action_rate(self):
+<         # Penalize changes in actions
+<         return torch.sum(torch.square(self.last_actions - self.actions), dim=1)
+<     
+---
+> 
+850d1253
+<         # Penalize collisions on selected bodies
+851a1255,1260
+> 
+>     def _reward_action_rate(self):
+>         return torch.norm(self.last_actions - self.actions, dim=1)
+> 
+>     def _reward_delta_torques(self):
+>         return torch.sum(torch.square(self.torques - self.last_torques), dim=1)
+853,893c1262,1270
+<     def _reward_termination(self):
+<         # Terminal reward / penalty
+<         return self.reset_buf * ~self.time_out_buf
+<     
+<     def _reward_dof_pos_limits(self):
+<         # Penalize dof positions too close to the limit
+<         out_of_limits = -(self.dof_pos - self.dof_pos_limits[:, 0]).clip(max=0.) # lower limit
+<         out_of_limits += (self.dof_pos - self.dof_pos_limits[:, 1]).clip(min=0.)
+<         return torch.sum(out_of_limits, dim=1)
+< 
+<     def _reward_dof_vel_limits(self):
+<         # Penalize dof velocities too close to the limit
+<         # clip to max error = 1 rad/s per joint to avoid huge penalties
+<         return torch.sum((torch.abs(self.dof_vel) - self.dof_vel_limits*self.cfg.rewards.soft_dof_vel_limit).clip(min=0., max=1.), dim=1)
+< 
+<     def _reward_torque_limits(self):
+<         # penalize torques too close to the limit
+<         return torch.sum((torch.abs(self.torques) - self.torque_limits*self.cfg.rewards.soft_torque_limit).clip(min=0.), dim=1)
+< 
+<     def _reward_tracking_lin_vel(self):
+<         # Tracking of linear velocity commands (xy axes)
+<         lin_vel_error = torch.sum(torch.square(self.commands[:, :2] - self.base_lin_vel[:, :2]), dim=1)
+<         return torch.exp(-lin_vel_error/self.cfg.rewards.tracking_sigma)
+<     
+<     def _reward_tracking_ang_vel(self):
+<         # Tracking of angular velocity commands (yaw) 
+<         ang_vel_error = torch.square(self.commands[:, 2] - self.base_ang_vel[:, 2])
+<         return torch.exp(-ang_vel_error/self.cfg.rewards.tracking_sigma)
+< 
+<     def _reward_feet_air_time(self):
+<         # Reward long steps
+<         # Need to filter the contacts because the contact reporting of PhysX is unreliable on meshes
+<         contact = self.contact_forces[:, self.feet_indices, 2] > 1.
+<         contact_filt = torch.logical_or(contact, self.last_contacts) 
+<         self.last_contacts = contact
+<         first_contact = (self.feet_air_time > 0.) * contact_filt
+<         self.feet_air_time += self.dt
+<         rew_airTime = torch.sum((self.feet_air_time - 0.5) * first_contact, dim=1) # reward only on first contact with the ground
+<         rew_airTime *= torch.norm(self.commands[:, :2], dim=1) > 0.1 #no reward for zero command
+<         self.feet_air_time *= ~contact_filt
+<         return rew_airTime
+---
+>     def _reward_torques(self):
+>         return torch.sum(torch.square(self.torques), dim=1)
+> 
+>     def _reward_hip_pos(self):
+>         return torch.sum(torch.square(self.dof_pos[:, self.hip_indices] - self.default_dof_pos[:, self.hip_indices]), dim=1)
+> 
+>     def _reward_dof_error(self):
+>         dof_error = torch.sum(torch.square(self.dof_pos - self.default_dof_pos), dim=1)
+>         return dof_error
+895c1272
+<     def _reward_stumble(self):
+---
+>     def _reward_feet_stumble(self):
+897,906c1274,1286
+<         return torch.any(torch.norm(self.contact_forces[:, self.feet_indices, :2], dim=2) >\
+<              5 *torch.abs(self.contact_forces[:, self.feet_indices, 2]), dim=1)
+<         
+<     def _reward_stand_still(self):
+<         # Penalize motion at zero commands
+<         return torch.sum(torch.abs(self.dof_pos - self.default_dof_pos), dim=1) * (torch.norm(self.commands[:, :2], dim=1) < 0.1)
+< 
+<     def _reward_feet_contact_forces(self):
+<         # penalize high contact forces
+<         return torch.sum((torch.norm(self.contact_forces[:, self.feet_indices, :], dim=-1) -  self.cfg.rewards.max_contact_force).clip(min=0.), dim=1)
+---
+>         rew = torch.any(torch.norm(self.contact_forces[:, self.feet_indices, :2], dim=2) >\
+>              4 *torch.abs(self.contact_forces[:, self.feet_indices, 2]), dim=1)
+>         return rew.float()
+> 
+>     def _reward_feet_edge(self):
+>         feet_pos_xy = ((self.rigid_body_states[:, self.feet_indices, :2] + self.terrain.cfg.border_size) / self.cfg.terrain.horizontal_scale).round().long()  # (num_envs, 4, 2)
+>         feet_pos_xy[..., 0] = torch.clip(feet_pos_xy[..., 0], 0, self.x_edge_mask.shape[0]-1)
+>         feet_pos_xy[..., 1] = torch.clip(feet_pos_xy[..., 1], 0, self.x_edge_mask.shape[1]-1)
+>         feet_at_edge = self.x_edge_mask[feet_pos_xy[..., 0], feet_pos_xy[..., 1]]
+>     
+>         self.feet_at_edge = self.contact_filt & feet_at_edge
+>         rew = (self.terrain_levels > 3) * torch.sum(self.feet_at_edge, dim=-1)
+>         return rew
+Binary files legged_gym/envs/base/__pycache__/base_config.cpython-38.pyc and /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/base/__pycache__/base_config.cpython-38.pyc differ
+Binary files legged_gym/envs/base/__pycache__/base_task.cpython-38.pyc and /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/base/__pycache__/base_task.cpython-38.pyc differ
+Binary files legged_gym/envs/base/__pycache__/legged_robot_config.cpython-38.pyc and /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/base/__pycache__/legged_robot_config.cpython-38.pyc differ
+Binary files legged_gym/envs/base/__pycache__/legged_robot.cpython-38.pyc and /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/base/__pycache__/legged_robot.cpython-38.pyc differ
+diff -r legged_gym/envs/cassie/cassie_config.py /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/cassie/cassie_config.py
+77d76
+<         name = "cassie"
+Binary files legged_gym/envs/cassie/__pycache__/cassie_config.cpython-38.pyc and /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/cassie/__pycache__/cassie_config.cpython-38.pyc differ
+Binary files legged_gym/envs/cassie/__pycache__/cassie.cpython-38.pyc and /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/cassie/__pycache__/cassie.cpython-38.pyc differ
+Only in /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs: go1
+diff -r legged_gym/envs/__init__.py /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/__init__.py
+41c41,42
+< 
+---
+> from .a1.a1_parkour_config import A1ParkourCfg, A1ParkourCfgPPO
+> from .go1.go1_config import Go1RoughCfg, Go1RoughCfgPPO
+47,51c48,53
+< task_registry.register( "anymal_c_rough", Anymal, AnymalCRoughCfg(), AnymalCRoughCfgPPO() )
+< task_registry.register( "anymal_c_flat", Anymal, AnymalCFlatCfg(), AnymalCFlatCfgPPO() )
+< task_registry.register( "anymal_b", Anymal, AnymalBRoughCfg(), AnymalBRoughCfgPPO() )
+< task_registry.register( "a1", LeggedRobot, A1RoughCfg(), A1RoughCfgPPO() )
+< task_registry.register( "cassie", Cassie, CassieRoughCfg(), CassieRoughCfgPPO() )
+---
+> # task_registry.register( "anymal_c_rough", Anymal, AnymalCRoughCfg(), AnymalCRoughCfgPPO() )
+> # task_registry.register( "anymal_c_flat", Anymal, AnymalCFlatCfg(), AnymalCFlatCfgPPO() )
+> # task_registry.register( "anymal_b", Anymal, AnymalBRoughCfg(), AnymalBRoughCfgPPO() )
+> # task_registry.register( "cassie", Cassie, CassieRoughCfg(), CassieRoughCfgPPO() )
+> task_registry.register( "a1", LeggedRobot, A1ParkourCfg(), A1ParkourCfgPPO() )
+> task_registry.register( "go1", LeggedRobot, Go1RoughCfg(), Go1RoughCfgPPO() )
+Binary files legged_gym/envs/__pycache__/__init__.cpython-38.pyc and /home/xinyi/extreme-parkour/legged_gym/legged_gym/envs/__pycache__/__init__.cpython-38.pyc differ
+Binary files legged_gym/__pycache__/__init__.cpython-38.pyc and /home/xinyi/extreme-parkour/legged_gym/legged_gym/__pycache__/__init__.cpython-38.pyc differ
+Only in /home/xinyi/extreme-parkour/legged_gym/legged_gym/scripts: evaluate.py
+Only in /home/xinyi/extreme-parkour/legged_gym/legged_gym/scripts: fetch.py
+Only in /home/xinyi/extreme-parkour/legged_gym/legged_gym/scripts: legged_gym
+diff -r legged_gym/scripts/play.py /home/xinyi/extreme-parkour/legged_gym/legged_gym/scripts/play.py
+32a33
+> import code
+37c38
+< 
+---
+> from isaacgym import gymtorch, gymapi, gymutil
+40c41,56
+< 
+---
+> import cv2
+> from collections import deque
+> import statistics
+> import faulthandler
+> from copy import deepcopy
+> import matplotlib.pyplot as plt
+> from time import time, sleep
+> from legged_gym.utils import webviewer
+> 
+> def get_load_path(root, load_run=-1, checkpoint=-1, model_name_include="model"):
+>     if checkpoint==-1:
+>         models = [file for file in os.listdir(root) if model_name_include in file]
+>         models.sort(key=lambda m: '{0:0>15}'.format(m))
+>         model = models[-1]
+>         checkpoint = model.split("_")[-1].split(".")[0]
+>     return model, checkpoint
+42a59,64
+>     if args.web:
+>         web_viewer = webviewer.WebViewer()
+>     faulthandler.enable()
+>     exptid = args.exptid
+>     log_pth = "../../logs/{}/".format(args.proj_name) + args.exptid
+> 
+45c67,71
+<     env_cfg.env.num_envs = min(env_cfg.env.num_envs, 50)
+---
+>     if args.nodelay:
+>         env_cfg.domain_rand.action_delay_view = 0
+>     env_cfg.env.num_envs = 16 if not args.save else 64
+>     env_cfg.env.episode_length_s = 60
+>     env_cfg.commands.resampling_time = 60
+47a74,96
+>     env_cfg.terrain.height = [0.02, 0.02]
+>     env_cfg.terrain.terrain_dict = {"smooth slope": 0., 
+>                                     "rough slope up": 0.0,
+>                                     "rough slope down": 0.0,
+>                                     "rough stairs up": 0., 
+>                                     "rough stairs down": 0., 
+>                                     "discrete": 0., 
+>                                     "stepping stones": 0.0,
+>                                     "gaps": 0., 
+>                                     "smooth flat": 0,
+>                                     "pit": 0.0,
+>                                     "wall": 0.0,
+>                                     "platform": 0.,
+>                                     "large stairs up": 0.,
+>                                     "large stairs down": 0.,
+>                                     "parkour": 0.2,
+>                                     "parkour_hurdle": 0.2,
+>                                     "parkour_flat": 0.,
+>                                     "parkour_step": 0.2,
+>                                     "parkour_gap": 0.2, 
+>                                     "demo": 0.2}
+>     
+>     env_cfg.terrain.terrain_proportions = list(env_cfg.terrain.terrain_dict.values())
+49,50c98,102
+<     env_cfg.noise.add_noise = False
+<     env_cfg.domain_rand.randomize_friction = False
+---
+>     env_cfg.terrain.max_difficulty = True
+>     
+>     env_cfg.depth.angle = [0, 1]
+>     env_cfg.noise.add_noise = True
+>     env_cfg.domain_rand.randomize_friction = True
+51a104,106
+>     env_cfg.domain_rand.push_interval_s = 6
+>     env_cfg.domain_rand.randomize_base_mass = False
+>     env_cfg.domain_rand.randomize_base_com = False
+52a108
+>     depth_latent_buffer = []
+53a110
+>     env: LeggedRobot
+55a113,116
+> 
+>     if args.web:
+>         web_viewer.setup(env)
+> 
+58,59c119
+<     ppo_runner, train_cfg = task_registry.make_alg_runner(env=env, name=args.task, args=args, train_cfg=train_cfg)
+<     policy = ppo_runner.get_inference_policy(device=env.device)
+---
+>     ppo_runner, train_cfg, log_pth = task_registry.make_alg_runner(log_root = log_pth, env=env, name=args.task, args=args, train_cfg=train_cfg, return_log_dir=True)
+61,78c121,166
+<     # export policy as a jit module (used to run it from C++)
+<     if EXPORT_POLICY:
+<         path = os.path.join(LEGGED_GYM_ROOT_DIR, 'logs', train_cfg.runner.experiment_name, 'exported', 'policies')
+<         export_policy_as_jit(ppo_runner.alg.actor_critic, path)
+<         print('Exported policy as jit script to: ', path)
+< 
+<     logger = Logger(env.dt)
+<     robot_index = 0 # which robot is used for logging
+<     joint_index = 1 # which joint is used for logging
+<     stop_state_log = 100 # number of steps before plotting states
+<     stop_rew_log = env.max_episode_length + 1 # number of steps before print average episode rewards
+<     camera_position = np.array(env_cfg.viewer.pos, dtype=float)
+<     camera_vel = np.array([1., 1., 0.])
+<     camera_direction = np.array(env_cfg.viewer.lookat) - np.array(env_cfg.viewer.pos)
+<     img_idx = 0
+< 
+<     for i in range(10*int(env.max_episode_length)):
+<         actions = policy(obs.detach())
+---
+>     if args.use_jit:
+>         path = os.path.join(log_pth, "traced")
+>         model, checkpoint = get_load_path(root=path, checkpoint=args.checkpoint)
+>         path = os.path.join(path, model)
+>         print("Loading jit for policy: ", path)
+>         policy_jit = torch.jit.load(path, map_location=env.device)
+>     else:
+>         policy = ppo_runner.get_inference_policy(device=env.device)
+>     estimator = ppo_runner.get_estimator_inference_policy(device=env.device)
+>     if env.cfg.depth.use_camera:
+>         depth_encoder = ppo_runner.get_depth_encoder_inference_policy(device=env.device)
+> 
+>     actions = torch.zeros(env.num_envs, 12, device=env.device, requires_grad=False)
+>     infos = {}
+>     infos["depth"] = env.depth_buffer.clone().to(ppo_runner.device)[:, -1] if ppo_runner.if_depth else None
+> 
+>     for i in range(10*int(env.max_episode_length)): # 10 hz
+>         if args.use_jit:
+>             if env.cfg.depth.use_camera:
+>                 if infos["depth"] is not None:
+>                     depth_latent = torch.ones((env_cfg.env.num_envs, 32), device=env.device)
+>                     actions, depth_latent = policy_jit(obs.detach(), True, infos["depth"], depth_latent)
+>                 else:
+>                     depth_buffer = torch.ones((env_cfg.env.num_envs, 58, 87), device=env.device)
+>                     actions, depth_latent = policy_jit(obs.detach(), False, depth_buffer, depth_latent)
+>             else:
+>                 obs_jit = torch.cat((obs.detach()[:, :env_cfg.env.n_proprio+env_cfg.env.n_priv], obs.detach()[:, -env_cfg.env.history_len*env_cfg.env.n_proprio:]), dim=1)
+>                 actions = policy(obs_jit)
+>         else:
+>             if env.cfg.depth.use_camera:
+>                 if infos["depth"] is not None:
+>                     obs_student = obs[:, :env.cfg.env.n_proprio].clone()
+>                     obs_student[:, 6:8] = 0
+>                     depth_latent_and_yaw = depth_encoder(infos["depth"], obs_student)
+>                     depth_latent = depth_latent_and_yaw[:, :-2]
+>                     yaw = depth_latent_and_yaw[:, -2:]
+>                 obs[:, 6:8] = 1.5*yaw
+>                     
+>             else:
+>                 depth_latent = None
+>             
+>             if hasattr(ppo_runner.alg, "depth_actor"):
+>                 actions = ppo_runner.alg.depth_actor(obs.detach(), hist_encoding=True, scandots_latent=depth_latent)
+>             else:
+>                 actions = policy(obs.detach(), hist_encoding=True, scandots_latent=depth_latent)
+>             
+80,114c168,178
+<         if RECORD_FRAMES:
+<             if i % 2:
+<                 filename = os.path.join(LEGGED_GYM_ROOT_DIR, 'logs', train_cfg.runner.experiment_name, 'exported', 'frames', f"{img_idx}.png")
+<                 env.gym.write_viewer_image_to_file(env.viewer, filename)
+<                 img_idx += 1 
+<         if MOVE_CAMERA:
+<             camera_position += camera_vel * env.dt
+<             env.set_camera(camera_position, camera_position + camera_direction)
+< 
+<         if i < stop_state_log:
+<             logger.log_states(
+<                 {
+<                     'dof_pos_target': actions[robot_index, joint_index].item() * env.cfg.control.action_scale,
+<                     'dof_pos': env.dof_pos[robot_index, joint_index].item(),
+<                     'dof_vel': env.dof_vel[robot_index, joint_index].item(),
+<                     'dof_torque': env.torques[robot_index, joint_index].item(),
+<                     'command_x': env.commands[robot_index, 0].item(),
+<                     'command_y': env.commands[robot_index, 1].item(),
+<                     'command_yaw': env.commands[robot_index, 2].item(),
+<                     'base_vel_x': env.base_lin_vel[robot_index, 0].item(),
+<                     'base_vel_y': env.base_lin_vel[robot_index, 1].item(),
+<                     'base_vel_z': env.base_lin_vel[robot_index, 2].item(),
+<                     'base_vel_yaw': env.base_ang_vel[robot_index, 2].item(),
+<                     'contact_forces_z': env.contact_forces[robot_index, env.feet_indices, 2].cpu().numpy()
+<                 }
+<             )
+<         elif i==stop_state_log:
+<             logger.plot_states()
+<         if  0 < i < stop_rew_log:
+<             if infos["episode"]:
+<                 num_episodes = torch.sum(env.reset_buf).item()
+<                 if num_episodes>0:
+<                     logger.log_rewards(infos["episode"], num_episodes)
+<         elif i==stop_rew_log:
+<             logger.print_rewards()
+---
+>         if args.web:
+>             web_viewer.render(fetch_results=True,
+>                         step_graphics=True,
+>                         render_all_camera_sensors=True,
+>                         wait_for_page_load=True)
+>         print("time:", env.episode_length_buf[env.lookat_id].item() / 50, 
+>               "cmd vx", env.commands[env.lookat_id, 0].item(),
+>               "actual vx", env.base_lin_vel[env.lookat_id, 0].item(), )
+>         
+>         id = env.lookat_id
+>         
+117c181
+<     EXPORT_POLICY = True
+---
+>     EXPORT_POLICY = False
+Only in /home/xinyi/extreme-parkour/legged_gym/legged_gym/scripts: save_jit.py
+diff -r legged_gym/scripts/train.py /home/xinyi/extreme-parkour/legged_gym/legged_gym/scripts/train.py
+37a38
+> from shutil import copyfile
+38a40
+> import wandb
+40a43,63
+>     args.headless = True
+>     # args.headless = False
+>     log_pth = LEGGED_GYM_ROOT_DIR + "/logs/{}/".format(args.proj_name) + args.exptid
+>     try:
+>         os.makedirs(log_pth)
+>     except:
+>         pass
+>     if args.debug:
+>         mode = "disabled"
+>         args.rows = 10
+>         args.cols = 8
+>         args.num_envs = 64
+>     else:
+>         mode = "online"
+>     
+>     if args.no_wandb:
+>         mode = "disabled"
+>     wandb.init(project=args.proj_name, name=args.exptid, entity="liuxytxdy10", group=args.exptid[:3], mode=mode, dir="../../logs")
+>     wandb.save(LEGGED_GYM_ENVS_DIR + "/base/legged_robot_config.py", policy="now")
+>     wandb.save(LEGGED_GYM_ENVS_DIR + "/base/legged_robot.py", policy="now")
+> 
+42c65
+<     ppo_runner, train_cfg = task_registry.make_alg_runner(env=env, name=args.task, args=args)
+---
+>     ppo_runner, train_cfg = task_registry.make_alg_runner(log_root = log_pth, env=env, name=args.task, args=args)
+45a69,71
+>     # Log configs immediately
+> 
+> 
+46a73,75
+>     # args.proj_name = 'test'
+>     # args.device = 'cuda:0'
+>     # args.exptid = '000.00-test'
+Only in /home/xinyi/extreme-parkour/legged_gym/legged_gym/scripts: visualize.py
+diff -r legged_gym/utils/helpers.py /home/xinyi/extreme-parkour/legged_gym/legged_gym/utils/helpers.py
+38c38
+< 
+---
+> import argparse
+103,116c103,112
+< def get_load_path(root, load_run=-1, checkpoint=-1):
+<     try:
+<         runs = os.listdir(root)
+<         #TODO sort by date to handle change of month
+<         runs.sort()
+<         if 'exported' in runs: runs.remove('exported')
+<         last_run = os.path.join(root, runs[-1])
+<     except:
+<         raise ValueError("No runs in this directory: " + root)
+<     if load_run==-1:
+<         load_run = last_run
+<     else:
+<         load_run = os.path.join(root, load_run)
+< 
+---
+> def get_load_path(root, load_run=-1, checkpoint=-1, model_name_include="model"):
+>     if not os.path.isdir(root):  # use first 4 chars to mactch the run name
+>         model_name_cand = os.path.basename(root)
+>         model_parent = os.path.dirname(root)
+>         model_names = os.listdir(model_parent)
+>         model_names = [name for name in model_names if os.path.isdir(os.path.join(model_parent, name))]
+>         for name in model_names:
+>             if len(name) >= 6:
+>                 if name[:6] == model_name_cand:
+>                     root = os.path.join(model_parent, name)
+118c114
+<         models = [file for file in os.listdir(load_run) if 'model' in file]
+---
+>         models = [file for file in os.listdir(root) if model_name_include in file]
+124c120
+<     load_path = os.path.join(load_run, model)
+---
+>     load_path = os.path.join(root, model)
+129a126,143
+>         if args.use_camera:
+>             env_cfg.depth.use_camera = args.use_camera
+>         if env_cfg.depth.use_camera and args.headless:  # set camera specific parameters
+>             env_cfg.env.num_envs = env_cfg.depth.camera_num_envs
+>             env_cfg.terrain.num_rows = env_cfg.depth.camera_terrain_num_rows
+>             env_cfg.terrain.num_cols = env_cfg.depth.camera_terrain_num_cols
+>             env_cfg.terrain.max_error = env_cfg.terrain.max_error_camera
+>             env_cfg.terrain.horizontal_scale = env_cfg.terrain.horizontal_scale_camera
+>             env_cfg.terrain.simplify_grid = True
+>             env_cfg.terrain.terrain_dict["parkour_hurdle"] = 0.2
+>             env_cfg.terrain.terrain_dict["parkour_flat"] = 0.05
+>             env_cfg.terrain.terrain_dict["parkour_gap"] = 0.2
+>             env_cfg.terrain.terrain_dict["parkour_step"] = 0.2
+>             env_cfg.terrain.terrain_dict["demo"] = 0.15
+>             env_cfg.terrain.terrain_proportions = list(env_cfg.terrain.terrain_dict.values())
+>         if env_cfg.depth.use_camera:
+>             env_cfg.terrain.y_range = [-0.1, 0.1]
+> 
+132a147,159
+>         if args.seed is not None:
+>             env_cfg.seed = args.seed
+>         if args.task_both:
+>             env_cfg.env.task_both = args.task_both
+>         if args.rows is not None:
+>             env_cfg.terrain.num_rows = args.rows
+>         if args.cols is not None:
+>             env_cfg.terrain.num_cols = args.cols
+>         if args.delay:
+>             env_cfg.domain_rand.action_delay = args.delay
+>         if not args.delay and not args.resume and not args.use_camera and args.headless: # if train from scratch
+>             env_cfg.domain_rand.action_delay = True
+>             env_cfg.domain_rand.action_curr_step = env_cfg.domain_rand.action_curr_step_scratch
+136a164,165
+>         if args.use_camera:
+>             cfg_train.depth_encoder.if_depth = args.use_camera
+140a170
+>             cfg_train.algorithm.priv_reg_coef_schedual = cfg_train.algorithm.priv_reg_coef_schedual_resume
+154c184
+<         {"name": "--task", "type": str, "default": "anymal_c_flat", "help": "Resume training or start testing from a checkpoint. Overrides config file if provided."},
+---
+>         {"name": "--task", "type": str, "default": "a1", "help": "Resume training or start testing from a checkpoint. Overrides config file if provided."},
+159c189
+<         {"name": "--checkpoint", "type": int,  "help": "Saved model checkpoint number. If -1: will load the last checkpoint. Overrides config file if provided."},
+---
+>         {"name": "--checkpoint", "type": int, "default": -1, "help": "Saved model checkpoint number. If -1: will load the last checkpoint. Overrides config file if provided."},
+166a197,224
+>         {"name": "--device", "type": str, "default": "cuda:0", "help": 'Device for sim, rl, and graphics'},
+> 
+>         {"name": "--rows", "type": int, "help": "num_rows."},
+>         {"name": "--cols", "type": int, "help": "num_cols"},
+>         {"name": "--debug", "action": "store_true", "default": False, "help": "Disable wandb logging"},
+>         {"name": "--proj_name", "type": str,  "default": "parkour_new", "help": "run folder name."},
+>         
+>         {"name": "--teacher", "type": str, "help": "Name of the teacher policy to use when distilling"},
+>         {"name": "--exptid", "type": str, "help": "exptid"},
+>         {"name": "--resumeid", "type": str, "help": "exptid"},
+>         {"name": "--daggerid", "type": str, "help": "name of dagger run"},
+>         {"name": "--use_camera", "action": "store_true", "default": False, "help": "render camera for distillation"},
+> 
+>         {"name": "--mask_obs", "action": "store_true", "default": False, "help": "Mask observation when playing"},
+>         {"name": "--use_jit", "action": "store_true", "default": False, "help": "Load jit script when playing"},
+>         {"name": "--use_latent", "action": "store_true", "default": False, "help": "Load depth latent when playing"},
+>         {"name": "--draw", "action": "store_true", "default": False, "help": "draw debug plot when playing"},
+>         {"name": "--save", "action": "store_true", "default": False, "help": "save data for evaluation"},
+> 
+>         {"name": "--task_both", "action": "store_true", "default": False, "help": "Both climbing and hitting policies"},
+>         {"name": "--nodelay", "action": "store_true", "default": False, "help": "Add action delay"},
+>         {"name": "--delay", "action": "store_true", "default": False, "help": "Add action delay"},
+>         {"name": "--hitid", "type": str, "default": None, "help": "exptid fot hitting policy"},
+> 
+>         {"name": "--web", "action": "store_true", "default": False, "help": "if use web viewer"},
+>         {"name": "--no_wandb", "action": "store_true", "default": False, "help": "no wandb"}
+> 
+> 
+169c227
+<     args = gymutil.parse_arguments(
+---
+>     args = parse_arguments(
+180c238
+< def export_policy_as_jit(actor_critic, path):
+---
+> def export_policy_as_jit(actor_critic, path, name):
+187c245
+<         path = os.path.join(path, 'policy_1.pt')
+---
+>         path = os.path.join(path, name+".pt")
+221a280,373
+> # overide gymutil
+> def parse_device_str(device_str):
+>     # defaults
+>     device = 'cpu'
+>     device_id = 0
+> 
+>     if device_str == 'cpu' or device_str == 'cuda':
+>         device = device_str
+>         device_id = 0
+>     else:
+>         device_args = device_str.split(':')
+>         assert len(device_args) == 2 and device_args[0] == 'cuda', f'Invalid device string "{device_str}"'
+>         device, device_id_s = device_args
+>         try:
+>             device_id = int(device_id_s)
+>         except ValueError:
+>             raise ValueError(f'Invalid device string "{device_str}". Cannot parse "{device_id}"" as a valid device id')
+>     return device, device_id
+> 
+> def parse_arguments(description="Isaac Gym Example", headless=False, no_graphics=False, custom_parameters=[]):
+>     parser = argparse.ArgumentParser(description=description)
+>     if headless:
+>         parser.add_argument('--headless', action='store_true', help='Run headless without creating a viewer window')
+>     if no_graphics:
+>         parser.add_argument('--nographics', action='store_true',
+>                             help='Disable graphics context creation, no viewer window is created, and no headless rendering is available')
+>     parser.add_argument('--sim_device', type=str, default="cuda:0", help='Physics Device in PyTorch-like syntax')
+>     parser.add_argument('--pipeline', type=str, default="gpu", help='Tensor API pipeline (cpu/gpu)')
+>     parser.add_argument('--graphics_device_id', type=int, default=0, help='Graphics Device ID')
+> 
+>     physics_group = parser.add_mutually_exclusive_group()
+>     physics_group.add_argument('--flex', action='store_true', help='Use FleX for physics')
+>     physics_group.add_argument('--physx', action='store_true', help='Use PhysX for physics')
+> 
+>     parser.add_argument('--num_threads', type=int, default=0, help='Number of cores used by PhysX')
+>     parser.add_argument('--subscenes', type=int, default=0, help='Number of PhysX subscenes to simulate in parallel')
+>     parser.add_argument('--slices', type=int, help='Number of client threads that process env slices')
+> 
+>     for argument in custom_parameters:
+>         if ("name" in argument) and ("type" in argument or "action" in argument):
+>             help_str = ""
+>             if "help" in argument:
+>                 help_str = argument["help"]
+> 
+>             if "type" in argument:
+>                 if "default" in argument:
+>                     parser.add_argument(argument["name"], type=argument["type"], default=argument["default"], help=help_str)
+>                 else:
+>                     parser.add_argument(argument["name"], type=argument["type"], help=help_str)
+>             elif "action" in argument:
+>                 parser.add_argument(argument["name"], action=argument["action"], help=help_str)
+> 
+>         else:
+>             print()
+>             print("ERROR: command line argument name, type/action must be defined, argument not added to parser")
+>             print("supported keys: name, type, default, action, help")
+>             print()
+> 
+>     args = parser.parse_args()
+> 
+>     if args.device is not None:
+>         args.sim_device = args.device
+>         args.rl_device = args.device
+>     args.sim_device_type, args.compute_device_id = parse_device_str(args.sim_device)
+>     pipeline = args.pipeline.lower()
+> 
+>     assert (pipeline == 'cpu' or pipeline in ('gpu', 'cuda')), f"Invalid pipeline '{args.pipeline}'. Should be either cpu or gpu."
+>     args.use_gpu_pipeline = (pipeline in ('gpu', 'cuda'))
+> 
+>     if args.sim_device_type != 'cuda' and args.flex:
+>         print("Can't use Flex with CPU. Changing sim device to 'cuda:0'")
+>         args.sim_device = 'cuda:0'
+>         args.sim_device_type, args.compute_device_id = parse_device_str(args.sim_device)
+> 
+>     if (args.sim_device_type != 'cuda' and pipeline == 'gpu'):
+>         print("Can't use GPU pipeline with CPU Physics. Changing pipeline to 'CPU'.")
+>         args.pipeline = 'CPU'
+>         args.use_gpu_pipeline = False
+> 
+>     # Default to PhysX
+>     args.physics_engine = gymapi.SIM_PHYSX
+>     args.use_gpu = (args.sim_device_type == 'cuda')
+> 
+>     if args.flex:
+>         args.physics_engine = gymapi.SIM_FLEX
+> 
+>     # Using --nographics implies --headless
+>     if no_graphics and args.nographics:
+>         args.headless = True
+> 
+>     if args.slices is None:
+>         args.slices = args.subscenes
+> 
+>     return args
+\ No newline at end of file
+diff -r legged_gym/utils/__init__.py /home/xinyi/extreme-parkour/legged_gym/legged_gym/utils/__init__.py
+35c35
+< from .terrain import Terrain
+\ No newline at end of file
+---
+> from .terrain import Terrain
+diff -r legged_gym/utils/math.py /home/xinyi/extreme-parkour/legged_gym/legged_gym/utils/math.py
+56c56,66
+<     return (upper - lower) * r + lower
+\ No newline at end of file
+---
+>     return (upper - lower) * r + lower
+> 
+> # @ torch.jit.script
+> def torch_rand_int(lower, upper, shape, device):
+>     # type: (float, float, Tuple[int, int], str) -> Tensor
+>     return ((upper - lower) * torch.rand(*shape, device=device).squeeze(1) + lower).long().float()
+> 
+> def sample_unit_vector(n, dim, device):
+>     tensor = torch.randn(n, dim, device=device)
+>     unit_vector = tensor / torch.norm(tensor, dim=-1, keepdim=True)
+>     return unit_vector
+\ No newline at end of file
+Binary files legged_gym/utils/__pycache__/helpers.cpython-38.pyc and /home/xinyi/extreme-parkour/legged_gym/legged_gym/utils/__pycache__/helpers.cpython-38.pyc differ
+Binary files legged_gym/utils/__pycache__/__init__.cpython-38.pyc and /home/xinyi/extreme-parkour/legged_gym/legged_gym/utils/__pycache__/__init__.cpython-38.pyc differ
+Binary files legged_gym/utils/__pycache__/logger.cpython-38.pyc and /home/xinyi/extreme-parkour/legged_gym/legged_gym/utils/__pycache__/logger.cpython-38.pyc differ
+Binary files legged_gym/utils/__pycache__/math.cpython-38.pyc and /home/xinyi/extreme-parkour/legged_gym/legged_gym/utils/__pycache__/math.cpython-38.pyc differ
+Binary files legged_gym/utils/__pycache__/task_registry.cpython-38.pyc and /home/xinyi/extreme-parkour/legged_gym/legged_gym/utils/__pycache__/task_registry.cpython-38.pyc differ
+Binary files legged_gym/utils/__pycache__/terrain.cpython-38.pyc and /home/xinyi/extreme-parkour/legged_gym/legged_gym/utils/__pycache__/terrain.cpython-38.pyc differ
+Only in /home/xinyi/extreme-parkour/legged_gym/legged_gym/utils/__pycache__: webviewer.cpython-38.pyc
+Only in /home/xinyi/extreme-parkour/legged_gym/legged_gym/utils: storage.py
+diff -r legged_gym/utils/task_registry.py /home/xinyi/extreme-parkour/legged_gym/legged_gym/utils/task_registry.py
+30a31
+> from copy import deepcopy
+104c105
+<     def make_alg_runner(self, env, name=None, args=None, train_cfg=None, log_root="default") -> Tuple[OnPolicyRunner, LeggedRobotCfgPPO]:
+---
+>     def make_alg_runner(self, env, name=None, args=None, train_cfg=None, init_wandb=True, log_root="default", **kwargs) -> Tuple[OnPolicyRunner, LeggedRobotCfgPPO]:
+137c138
+< 
+---
+>         
+144c145
+<             log_dir = os.path.join(log_root, datetime.now().strftime('%b%d_%H-%M-%S') + '_' + train_cfg.runner.run_name)
+---
+>             log_dir = log_root#os.path.join(log_root, datetime.now().strftime('%b%d_%H-%M-%S') + '_' + train_cfg.runner.run_name)
+147c148,152
+<         runner = OnPolicyRunner(env, train_cfg_dict, log_dir, device=args.rl_device)
+---
+>         runner = OnPolicyRunner(env, 
+>                                 train_cfg_dict, 
+>                                 log_dir, 
+>                                 init_wandb=init_wandb,
+>                                 device=args.rl_device, **kwargs)
+149a155,157
+>         if args.resumeid:
+>             log_root = LEGGED_GYM_ROOT_DIR + f"/logs/{args.proj_name}/" + args.resumeid
+>             resume = True
+151a160,162
+>             print(log_root)
+>             print(train_cfg.runner.load_run)
+>             # load_root = os.path.join(LEGGED_GYM_ROOT_DIR, 'logs', "rough_a1", train_cfg.runner.load_run)
+153d163
+<             print(f"Loading model from: {resume_path}")
+155c165,171
+<         return runner, train_cfg
+---
+>             if not train_cfg.policy.continue_from_last_std:
+>                 runner.alg.actor_critic.reset_std(train_cfg.policy.init_noise_std, 12, device=runner.device)
+> 
+>         if "return_log_dir" in kwargs:
+>             return runner, train_cfg, os.path.dirname(resume_path)
+>         else:    
+>             return runner, train_cfg
+158c174
+< task_registry = TaskRegistry()
+\ No newline at end of file
+---
+> task_registry = TaskRegistry()
+diff -r legged_gym/utils/terrain.py /home/xinyi/extreme-parkour/legged_gym/legged_gym/utils/terrain.py
+34c34
+< 
+---
+> import random
+36a37,41
+> from scipy import ndimage
+> from pydelatin import Delatin
+> import pyfqmr
+> from scipy.ndimage import binary_dilation
+> 
+40d44
+< 
+48d51
+<         self.proportions = [np.sum(cfg.terrain_proportions[:i+1]) for i in range(len(cfg.terrain_proportions))]
+49a53,54
+>         cfg.terrain_proportions = np.array(cfg.terrain_proportions) / np.sum(cfg.terrain_proportions)
+>         self.proportions = [np.sum(cfg.terrain_proportions[:i+1]) for i in range(len(cfg.terrain_proportions))]
+51a57,60
+>         self.terrain_type = np.zeros((cfg.num_rows, cfg.num_cols))
+>         # self.env_slope_vec = np.zeros((cfg.num_rows, cfg.num_cols, 3))
+>         self.goals = np.zeros((cfg.num_rows, cfg.num_cols, cfg.num_goals, 3))
+>         self.num_goals = cfg.num_goals
+66c75,79
+<             self.randomized_terrain()   
+---
+>             if hasattr(cfg, "max_difficulty"):
+>                 self.curiculum(random=True, max_difficulty=cfg.max_difficulty)
+>             else:
+>                 self.curiculum(random=True)
+>             # self.randomized_terrain()   
+70,74c83,105
+<             self.vertices, self.triangles = terrain_utils.convert_heightfield_to_trimesh(   self.height_field_raw,
+<                                                                                             self.cfg.horizontal_scale,
+<                                                                                             self.cfg.vertical_scale,
+<                                                                                             self.cfg.slope_treshold)
+<     
+---
+>             print("Converting heightmap to trimesh...")
+>             if cfg.hf2mesh_method == "grid":
+>                 self.vertices, self.triangles, self.x_edge_mask = convert_heightfield_to_trimesh(   self.height_field_raw,
+>                                                                                                 self.cfg.horizontal_scale,
+>                                                                                                 self.cfg.vertical_scale,
+>                                                                                                 self.cfg.slope_treshold)
+>                 half_edge_width = int(self.cfg.edge_width_thresh / self.cfg.horizontal_scale)
+>                 structure = np.ones((half_edge_width*2+1, 1))
+>                 self.x_edge_mask = binary_dilation(self.x_edge_mask, structure=structure)
+>                 if self.cfg.simplify_grid:
+>                     mesh_simplifier = pyfqmr.Simplify()
+>                     mesh_simplifier.setMesh(self.vertices, self.triangles)
+>                     mesh_simplifier.simplify_mesh(target_count = int(0.05*self.triangles.shape[0]), aggressiveness=7, preserve_border=True, verbose=10)
+> 
+>                     self.vertices, self.triangles, normals = mesh_simplifier.getMesh()
+>                     self.vertices = self.vertices.astype(np.float32)
+>                     self.triangles = self.triangles.astype(np.uint32)
+>             else:
+>                 assert cfg.hf2mesh_method == "fast", "Height field to mesh method must be grid or fast"
+>                 self.vertices, self.triangles = convert_heightfield_to_trimesh_delatin(self.height_field_raw, self.cfg.horizontal_scale, self.cfg.vertical_scale, max_error=cfg.max_error)
+>             print("Created {} vertices".format(self.vertices.shape[0]))
+>             print("Created {} triangles".format(self.triangles.shape[0]))
+> 
+81c112,113
+<             difficulty = np.random.choice([0.5, 0.75, 0.9])
+---
+>             # difficulty = np.random.choice([0.5, 0.75, 0.9])
+>             difficulty = np.random.uniform(-0.2, 1.2)
+85c117
+<     def curiculum(self):
+---
+>     def curiculum(self, random=False, max_difficulty=False):
+88c120
+<                 difficulty = i / self.cfg.num_rows
+---
+>                 difficulty = i / (self.cfg.num_rows-1)
+89a122,128
+>                 if random:
+>                     if max_difficulty:
+>                         terrain = self.make_terrain(choice, np.random.uniform(0.7, 1))
+>                     else:
+>                         terrain = self.make_terrain(choice, np.random.uniform(0, 1))
+>                 else:
+>                     terrain = self.make_terrain(choice, difficulty)
+91d129
+<                 terrain = self.make_terrain(choice, difficulty)
+102c140
+<                               length=self.width_per_env_pixels,
+---
+>                               length=self.length_per_env_pixels,
+108a147,151
+>     def add_roughness(self, terrain, difficulty=1):
+>         max_height = (self.cfg.height[1] - self.cfg.height[0]) * difficulty + self.cfg.height[0]
+>         height = random.uniform(self.cfg.height[0], max_height)
+>         terrain_utils.random_uniform_terrain(terrain, min_height=-height, max_height=height, step=0.005, downsampled_scale=self.cfg.downsampled_scale)
+> 
+111c154
+<                                 width=self.width_per_env_pixels,
+---
+>                                 width=self.length_per_env_pixels,
+116,117c159,160
+<         step_height = 0.05 + 0.18 * difficulty
+<         discrete_obstacles_height = 0.05 + difficulty * 0.2
+---
+>         step_height = 0.02 + 0.14 * difficulty
+>         discrete_obstacles_height = 0.03 + difficulty * 0.15
+122a166
+>             idx = 0
+123a168
+>                 idx = 1
+126c171,176
+<         elif choice < self.proportions[1]:
+---
+>             # self.add_roughness(terrain)
+>         elif choice < self.proportions[2]:
+>             idx = 2
+>             if choice<self.proportions[1]:
+>                 idx = 3
+>                 slope *= -1
+128,130c178,182
+<             terrain_utils.random_uniform_terrain(terrain, min_height=-0.05, max_height=0.05, step=0.005, downsampled_scale=0.2)
+<         elif choice < self.proportions[3]:
+<             if choice<self.proportions[2]:
+---
+>             self.add_roughness(terrain)
+>         elif choice < self.proportions[4]:
+>             idx = 4
+>             if choice<self.proportions[3]:
+>                 idx = 5
+133c185,187
+<         elif choice < self.proportions[4]:
+---
+>             self.add_roughness(terrain)
+>         elif choice < self.proportions[5]:
+>             idx = 6
+135c189
+<             rectangle_min_size = 1.
+---
+>             rectangle_min_size = 0.5
+138,139c192
+<         elif choice < self.proportions[5]:
+<             terrain_utils.stepping_stones_terrain(terrain, stone_size=stepping_stones_size, stone_distance=stone_distance, max_height=0., platform_size=4.)
+---
+>             self.add_roughness(terrain)
+141,142c194,210
+<             gap_terrain(terrain, gap_size=gap_size, platform_size=3.)
+<         else:
+---
+>             idx = 7
+>             stones_size = 1.5 - 1.2*difficulty
+>             # terrain_utils.stepping_stones_terrain(terrain, stone_size=stones_size, stone_distance=0.1, stone_distance_rand=0, max_height=0.04*difficulty, platform_size=2.)
+>             half_sloped_terrain(terrain, wall_width=4, start2center=0.5, max_height=0.00)
+>             stepping_stones_terrain(terrain, stone_size=1.5-0.2*difficulty, stone_distance=0.0+0.4*difficulty, max_height=0.2*difficulty, platform_size=1.2)
+>             self.add_roughness(terrain)
+>         elif choice < self.proportions[7]:
+>             idx = 8
+>             # gap_size = random.uniform(self.cfg.gap_size[0], self.cfg.gap_size[1])
+>             gap_parkour_terrain(terrain, difficulty, platform_size=4)
+>             self.add_roughness(terrain)
+>         elif choice < self.proportions[8]:
+>             idx = 9
+>             self.add_roughness(terrain)
+>             # pass
+>         elif choice < self.proportions[9]:
+>             idx = 10
+144c212,326
+<         
+---
+>         elif choice < self.proportions[10]:
+>             idx = 11
+>             if self.cfg.all_vertical:
+>                 half_slope_difficulty = 1.0
+>             else:
+>                 difficulty *= 1.3
+>                 if not self.cfg.no_flat:
+>                     difficulty -= 0.1
+>                 if difficulty > 1:
+>                     half_slope_difficulty = 1.0
+>                 elif difficulty < 0:
+>                     self.add_roughness(terrain)
+>                     terrain.slope_vector = np.array([1, 0., 0]).astype(np.float32)
+>                     return terrain
+>                 else:
+>                     half_slope_difficulty = difficulty
+>             wall_width = 4 - half_slope_difficulty * 4
+>             # terrain_utils.wall_terrain(terrain, height=1, start2center=0.7)
+>             # terrain_utils.tanh_terrain(terrain, height=1.0, start2center=0.7)
+>             if self.cfg.flat_wall:
+>                 half_sloped_terrain(terrain, wall_width=4, start2center=0.5, max_height=0.00)
+>             else:
+>                 half_sloped_terrain(terrain, wall_width=wall_width, start2center=0.5, max_height=1.5)
+>             max_height = terrain.height_field_raw.max()
+>             top_mask = terrain.height_field_raw > max_height - 0.05
+>             self.add_roughness(terrain, difficulty=1)
+>             terrain.height_field_raw[top_mask] = max_height
+>         elif choice < self.proportions[11]:
+>             idx = 12
+>             # half platform terrain
+>             half_platform_terrain(terrain, max_height=0.1 + 0.4 * difficulty )
+>             self.add_roughness(terrain, difficulty=1)
+>         elif choice < self.proportions[13]:
+>             idx = 13
+>             height = 0.1 + 0.3 * difficulty
+>             if choice < self.proportions[12]:
+>                 idx = 14
+>                 height *= -1
+>             terrain_utils.pyramid_stairs_terrain(terrain, step_width=1., step_height=height, platform_size=3.)
+>             self.add_roughness(terrain)
+>         elif choice < self.proportions[14]:
+>             x_range = [-0.1, 0.1+0.3*difficulty]  # offset to stone_len
+>             y_range = [0.2, 0.3+0.1*difficulty]
+>             stone_len = [0.9 - 0.3*difficulty, 1 - 0.2*difficulty]#2 * round((0.6) / 2.0, 1)
+>             incline_height = 0.25*difficulty
+>             last_incline_height = incline_height + 0.1 - 0.1*difficulty
+>             parkour_terrain(terrain,
+>                             num_stones=self.num_goals - 2,
+>                             x_range=x_range, 
+>                             y_range=y_range,
+>                             incline_height=incline_height,
+>                             stone_len=stone_len,
+>                             stone_width=1.0, 
+>                             last_incline_height=last_incline_height,
+>                             pad_height=0,
+>                             pit_depth=[0.2, 1])
+>             idx = 15
+>             # terrain.height_field_raw[:] = 0
+>             self.add_roughness(terrain)
+>         elif choice < self.proportions[15]:
+>             idx = 16
+>             parkour_hurdle_terrain(terrain,
+>                                    num_stones=self.num_goals - 2,
+>                                    stone_len=0.1+0.3*difficulty,
+>                                    hurdle_height_range=[0.1+0.1*difficulty, 0.15+0.25*difficulty],
+>                                    pad_height=0,
+>                                    x_range=[1.2, 2.2],
+>                                    y_range=self.cfg.y_range,
+>                                    half_valid_width=[0.4, 0.8],
+>                                    )
+>             # terrain.height_field_raw[:] = 0
+>             self.add_roughness(terrain)
+>         elif choice < self.proportions[16]:
+>             idx = 17
+>             parkour_hurdle_terrain(terrain,
+>                                    num_stones=self.num_goals - 2,
+>                                    stone_len=0.1+0.3*difficulty,
+>                                    hurdle_height_range=[0.1+0.1*difficulty, 0.15+0.15*difficulty],
+>                                    pad_height=0,
+>                                    y_range=self.cfg.y_range,
+>                                    half_valid_width=[0.45, 1],
+>                                    flat=True
+>                                    )
+>             self.add_roughness(terrain)
+>         elif choice < self.proportions[17]:
+>             idx = 18
+>             parkour_step_terrain(terrain,
+>                                    num_stones=self.num_goals - 2,
+>                                    step_height=0.1 + 0.35*difficulty,
+>                                    x_range=[0.3,1.5],
+>                                    y_range=self.cfg.y_range,
+>                                    half_valid_width=[0.5, 1],
+>                                    pad_height=0,
+>                                    )
+>             self.add_roughness(terrain)
+>         elif choice < self.proportions[18]:
+>             idx = 19
+>             parkour_gap_terrain(terrain,
+>                                 num_gaps=self.num_goals - 2,
+>                                 gap_size=0.1 + 0.7 * difficulty,
+>                                 gap_depth=[0.2, 1],
+>                                 pad_height=0,
+>                                 x_range=[0.8, 1.5],
+>                                 y_range=self.cfg.y_range,
+>                                 half_valid_width=[0.6, 1.2],
+>                                 # flat=True
+>                                 )
+>             self.add_roughness(terrain)
+>         elif choice < self.proportions[19]:
+>             idx = 20
+>             demo_terrain(terrain)
+>             self.add_roughness(terrain)
+>         # np.set_printoptions(precision=2)
+>         # print(np.array(self.proportions), choice)
+>         terrain.idx = idx
+157c339,340
+<         env_origin_x = (i + 0.5) * self.env_length
+---
+>         # env_origin_x = (i + 0.5) * self.env_length
+>         env_origin_x = i * self.env_length + 1.0
+159,163c342,349
+<         x1 = int((self.env_length/2. - 1) / terrain.horizontal_scale)
+<         x2 = int((self.env_length/2. + 1) / terrain.horizontal_scale)
+<         y1 = int((self.env_width/2. - 1) / terrain.horizontal_scale)
+<         y2 = int((self.env_width/2. + 1) / terrain.horizontal_scale)
+<         env_origin_z = np.max(terrain.height_field_raw[x1:x2, y1:y2])*terrain.vertical_scale
+---
+>         x1 = int((self.env_length/2. - 0.5) / terrain.horizontal_scale) # within 1 meter square range
+>         x2 = int((self.env_length/2. + 0.5) / terrain.horizontal_scale)
+>         y1 = int((self.env_width/2. - 0.5) / terrain.horizontal_scale)
+>         y2 = int((self.env_width/2. + 0.5) / terrain.horizontal_scale)
+>         if self.cfg.origin_zero_z:
+>             env_origin_z = 0
+>         else:
+>             env_origin_z = np.max(terrain.height_field_raw[x1:x2, y1:y2])*terrain.vertical_scale
+164a351,353
+>         self.terrain_type[i, j] = terrain.idx
+>         self.goals[i, j, :, :2] = terrain.goals + [i * self.env_length, j * self.env_width]
+>         # self.env_slope_vec[i, j] = terrain.slope_vector
+179a369,777
+> def gap_parkour_terrain(terrain, difficulty, platform_size=2.):
+>     gap_size = 0.1 + 0.3 * difficulty
+>     gap_size = int(gap_size / terrain.horizontal_scale)
+>     platform_size = int(platform_size / terrain.horizontal_scale)
+> 
+>     center_x = terrain.length // 2
+>     center_y = terrain.width // 2
+>     x1 = (terrain.length - platform_size) // 2
+>     x2 = x1 + gap_size
+>     y1 = (terrain.width - platform_size) // 2
+>     y2 = y1 + gap_size
+>    
+>     terrain.height_field_raw[center_x-x2 : center_x + x2, center_y-y2 : center_y + y2] = -400
+>     terrain.height_field_raw[center_x-x1 : center_x + x1, center_y-y1 : center_y + y1] = 0
+> 
+>     slope_angle = 0.1 + difficulty * 1
+>     offset = 1 + 9 * difficulty#10
+>     scale = 15
+>     wall_center_x = [center_x - x1, center_x, center_x + x1]
+>     wall_center_y = [center_y - y1, center_y, center_y + y1]
+> 
+>     # for i in range(center_y + y1, center_y + y2):
+>     #     for j in range(center_x-x1, center_x + x1):
+>     #         for w in wall_center_x:
+>     #             height = scale * (-(slope_angle * np.abs(j - w)) + offset)
+>     #             if terrain.height_field_raw[j, i] < height:
+>     #                 terrain.height_field_raw[j, i] = int(height)
+>     
+>     # for i in range(center_y - y2, center_y - y1):
+>     #     for j in range(center_x-x1, center_x + x1):
+>     #         for w in wall_center_x:
+>     #             height = scale * (-(slope_angle * np.abs(j - w)) + offset)
+>     #             if terrain.height_field_raw[j, i] < height:
+>     #                 terrain.height_field_raw[j, i] = int(height)
+> 
+>     # for i in range(center_x + x1, center_x + x2):
+>     #     for j in range(center_y-y1, center_y + y1):
+>     #         for w in wall_center_y:
+>     #             height = scale * (-(slope_angle * np.abs(j - w)) + offset)
+>     #             if terrain.height_field_raw[i, j] < height:
+>     #                 terrain.height_field_raw[i, j] = int(height)
+>     
+>     # for i in range(center_x - x2, center_x - x1):
+>     #     for j in range(center_y-y1, center_y + y1):
+>     #         for w in wall_center_y:
+>     #             height = scale * (-(slope_angle * np.abs(j - w)) + offset)
+>     #             if terrain.height_field_raw[i, j] < height:
+>     #                 terrain.height_field_raw[i, j] = int(height)
+> 
+> def parkour_terrain(terrain, 
+>                     platform_len=2.5, 
+>                     platform_height=0., 
+>                     num_stones=8, 
+>                     x_range=[1.8, 1.9], 
+>                     y_range=[0., 0.1], 
+>                     z_range=[-0.2, 0.2],
+>                     stone_len=1.0,
+>                     stone_width=0.6,
+>                     pad_width=0.1,
+>                     pad_height=0.5,
+>                     incline_height=0.1,
+>                     last_incline_height=0.6,
+>                     last_stone_len=1.6,
+>                     pit_depth=[0.5, 1.]):
+>     # 1st dimension: x, 2nd dimension: y
+>     goals = np.zeros((num_stones+2, 2))
+>     terrain.height_field_raw[:] = -round(np.random.uniform(pit_depth[0], pit_depth[1]) / terrain.vertical_scale)
+>     
+>     mid_y = terrain.length // 2  # length is actually y width
+>     stone_len = np.random.uniform(*stone_len)
+>     stone_len = 2 * round(stone_len / 2.0, 1)
+>     stone_len = round(stone_len / terrain.horizontal_scale)
+>     dis_x_min = stone_len + round(x_range[0] / terrain.horizontal_scale)
+>     dis_x_max = stone_len + round(x_range[1] / terrain.horizontal_scale)
+>     dis_y_min = round(y_range[0] / terrain.horizontal_scale)
+>     dis_y_max = round(y_range[1] / terrain.horizontal_scale)
+>     dis_z_min = round(z_range[0] / terrain.vertical_scale)
+>     dis_z_max = round(z_range[1] / terrain.vertical_scale)
+> 
+>     platform_len = round(platform_len / terrain.horizontal_scale)
+>     platform_height = round(platform_height / terrain.vertical_scale)
+>     terrain.height_field_raw[0:platform_len, :] = platform_height
+> 
+>     stone_width = round(stone_width / terrain.horizontal_scale)
+>     last_stone_len = round(last_stone_len / terrain.horizontal_scale)
+> 
+>     incline_height = round(incline_height / terrain.vertical_scale)
+>     last_incline_height = round(last_incline_height / terrain.vertical_scale)
+> 
+>     dis_x = platform_len - np.random.randint(dis_x_min, dis_x_max) + stone_len // 2
+>     goals[0] = [platform_len -  stone_len // 2, mid_y]
+>     left_right_flag = np.random.randint(0, 2)
+>     # dis_z = np.random.randint(dis_z_min, dis_z_max)
+>     dis_z = 0
+>     
+>     for i in range(num_stones):
+>         dis_x += np.random.randint(dis_x_min, dis_x_max)
+>         pos_neg = round(2*(left_right_flag - 0.5))
+>         dis_y = mid_y + pos_neg * np.random.randint(dis_y_min, dis_y_max)
+>         if i == num_stones - 1:
+>             dis_x += last_stone_len // 4
+>             heights = np.tile(np.linspace(-last_incline_height, last_incline_height, stone_width), (last_stone_len, 1)) * pos_neg
+>             terrain.height_field_raw[dis_x-last_stone_len//2:dis_x+last_stone_len//2, dis_y-stone_width//2: dis_y+stone_width//2] = heights.astype(int) + dis_z
+>         else:
+>             heights = np.tile(np.linspace(-incline_height, incline_height, stone_width), (stone_len, 1)) * pos_neg
+>             terrain.height_field_raw[dis_x-stone_len//2:dis_x+stone_len//2, dis_y-stone_width//2: dis_y+stone_width//2] = heights.astype(int) + dis_z
+>         
+>         goals[i+1] = [dis_x, dis_y]
+> 
+>         left_right_flag = 1 - left_right_flag
+>     final_dis_x = dis_x + 2*np.random.randint(dis_x_min, dis_x_max)
+>     final_platform_start = dis_x + last_stone_len // 2 + round(0.05 // terrain.horizontal_scale)
+>     terrain.height_field_raw[final_platform_start:, :] = platform_height
+>     goals[-1] = [final_dis_x, mid_y]
+>     
+>     terrain.goals = goals * terrain.horizontal_scale
+>     
+>     # pad edges
+>     pad_width = int(pad_width // terrain.horizontal_scale)
+>     pad_height = int(pad_height // terrain.vertical_scale)
+>     terrain.height_field_raw[:, :pad_width] = pad_height
+>     terrain.height_field_raw[:, -pad_width:] = pad_height
+>     terrain.height_field_raw[:pad_width, :] = pad_height
+>     terrain.height_field_raw[-pad_width:, :] = pad_height
+>     
+> def parkour_gap_terrain(terrain,
+>                            platform_len=2.5, 
+>                            platform_height=0., 
+>                            num_gaps=8,
+>                            gap_size=0.3,
+>                            x_range=[1.6, 2.4],
+>                            y_range=[-1.2, 1.2],
+>                            half_valid_width=[0.6, 1.2],
+>                            gap_depth=-200,
+>                            pad_width=0.1,
+>                            pad_height=0.5,
+>                            flat=False):
+>     goals = np.zeros((num_gaps+2, 2))
+>     # terrain.height_field_raw[:] = -200
+>     # import ipdb; ipdb.set_trace()
+>     mid_y = terrain.length // 2  # length is actually y width
+> 
+>     # dis_x_min = round(x_range[0] / terrain.horizontal_scale)
+>     # dis_x_max = round(x_range[1] / terrain.horizontal_scale)
+>     dis_y_min = round(y_range[0] / terrain.horizontal_scale)
+>     dis_y_max = round(y_range[1] / terrain.horizontal_scale)
+> 
+>     platform_len = round(platform_len / terrain.horizontal_scale)
+>     platform_height = round(platform_height / terrain.vertical_scale)
+>     gap_depth = -round(np.random.uniform(gap_depth[0], gap_depth[1]) / terrain.vertical_scale)
+>     
+>     # half_gap_width = round(np.random.uniform(0.6, 1.2) / terrain.horizontal_scale)
+>     half_valid_width = round(np.random.uniform(half_valid_width[0], half_valid_width[1]) / terrain.horizontal_scale)
+>     # terrain.height_field_raw[:, :mid_y-half_valid_width] = gap_depth
+>     # terrain.height_field_raw[:, mid_y+half_valid_width:] = gap_depth
+>     
+>     terrain.height_field_raw[0:platform_len, :] = platform_height
+> 
+>     gap_size = round(gap_size / terrain.horizontal_scale)
+>     dis_x_min = round(x_range[0] / terrain.horizontal_scale) + gap_size
+>     dis_x_max = round(x_range[1] / terrain.horizontal_scale) + gap_size
+> 
+>     dis_x = platform_len
+>     goals[0] = [platform_len - 1, mid_y]
+>     last_dis_x = dis_x
+>     for i in range(num_gaps):
+>         rand_x = np.random.randint(dis_x_min, dis_x_max)
+>         dis_x += rand_x
+>         rand_y = np.random.randint(dis_y_min, dis_y_max)
+>         if not flat:
+>             # terrain.height_field_raw[dis_x-stone_len//2:dis_x+stone_len//2, ] = np.random.randint(hurdle_height_min, hurdle_height_max)
+>             # terrain.height_field_raw[dis_x-gap_size//2 : dis_x+gap_size//2, 
+>             #                          gap_center-half_gap_width:gap_center+half_gap_width] = gap_depth
+>             terrain.height_field_raw[dis_x-gap_size//2 : dis_x+gap_size//2, :] = gap_depth
+> 
+>         terrain.height_field_raw[last_dis_x:dis_x, :mid_y+rand_y-half_valid_width] = gap_depth
+>         terrain.height_field_raw[last_dis_x:dis_x, mid_y+rand_y+half_valid_width:] = gap_depth
+>         
+>         last_dis_x = dis_x
+>         goals[i+1] = [dis_x-rand_x//2, mid_y + rand_y]
+>     final_dis_x = dis_x + np.random.randint(dis_x_min, dis_x_max)
+>     # import ipdb; ipdb.set_trace()
+>     if final_dis_x > terrain.width:
+>         final_dis_x = terrain.width - 0.5 // terrain.horizontal_scale
+>     goals[-1] = [final_dis_x, mid_y]
+>     
+>     terrain.goals = goals * terrain.horizontal_scale
+>     
+>     # terrain.height_field_raw[:, :] = 0
+>     # pad edges
+>     pad_width = int(pad_width // terrain.horizontal_scale)
+>     pad_height = int(pad_height // terrain.vertical_scale)
+>     terrain.height_field_raw[:, :pad_width] = pad_height
+>     terrain.height_field_raw[:, -pad_width:] = pad_height
+>     terrain.height_field_raw[:pad_width, :] = pad_height
+>     terrain.height_field_raw[-pad_width:, :] = pad_height
+> 
+> def parkour_hurdle_terrain(terrain,
+>                            platform_len=2.5, 
+>                            platform_height=0., 
+>                            num_stones=8,
+>                            stone_len=0.3,
+>                            x_range=[1.5, 2.4],
+>                            y_range=[-0.4, 0.4],
+>                            half_valid_width=[0.4, 0.8],
+>                            hurdle_height_range=[0.2, 0.3],
+>                            pad_width=0.1,
+>                            pad_height=0.5,
+>                            flat=False):
+>     goals = np.zeros((num_stones+2, 2))
+>     # terrain.height_field_raw[:] = -200
+>     
+>     mid_y = terrain.length // 2  # length is actually y width
+> 
+>     dis_x_min = round(x_range[0] / terrain.horizontal_scale)
+>     dis_x_max = round(x_range[1] / terrain.horizontal_scale)
+>     dis_y_min = round(y_range[0] / terrain.horizontal_scale)
+>     dis_y_max = round(y_range[1] / terrain.horizontal_scale)
+> 
+>     # half_valid_width = round(np.random.uniform(y_range[1]+0.2, y_range[1]+1) / terrain.horizontal_scale)
+>     half_valid_width = round(np.random.uniform(half_valid_width[0], half_valid_width[1]) / terrain.horizontal_scale)
+>     hurdle_height_max = round(hurdle_height_range[1] / terrain.vertical_scale)
+>     hurdle_height_min = round(hurdle_height_range[0] / terrain.vertical_scale)
+> 
+>     platform_len = round(platform_len / terrain.horizontal_scale)
+>     platform_height = round(platform_height / terrain.vertical_scale)
+>     terrain.height_field_raw[0:platform_len, :] = platform_height
+> 
+>     stone_len = round(stone_len / terrain.horizontal_scale)
+>     # stone_width = round(stone_width / terrain.horizontal_scale)
+>     
+>     # incline_height = round(incline_height / terrain.vertical_scale)
+>     # last_incline_height = round(last_incline_height / terrain.vertical_scale)
+> 
+>     dis_x = platform_len
+>     goals[0] = [platform_len - 1, mid_y]
+>     last_dis_x = dis_x
+>     for i in range(num_stones):
+>         rand_x = np.random.randint(dis_x_min, dis_x_max)
+>         rand_y = np.random.randint(dis_y_min, dis_y_max)
+>         dis_x += rand_x
+>         if not flat:
+>             terrain.height_field_raw[dis_x-stone_len//2:dis_x+stone_len//2, ] = np.random.randint(hurdle_height_min, hurdle_height_max)
+>             terrain.height_field_raw[dis_x-stone_len//2:dis_x+stone_len//2, :mid_y+rand_y-half_valid_width] = 0
+>             terrain.height_field_raw[dis_x-stone_len//2:dis_x+stone_len//2, mid_y+rand_y+half_valid_width:] = 0
+>         last_dis_x = dis_x
+>         goals[i+1] = [dis_x-rand_x//2, mid_y + rand_y]
+>     final_dis_x = dis_x + np.random.randint(dis_x_min, dis_x_max)
+>     # import ipdb; ipdb.set_trace()
+>     if final_dis_x > terrain.width:
+>         final_dis_x = terrain.width - 0.5 // terrain.horizontal_scale
+>     goals[-1] = [final_dis_x, mid_y]
+>     
+>     terrain.goals = goals * terrain.horizontal_scale
+>     
+>     # terrain.height_field_raw[:, :max(mid_y-half_valid_width, 0)] = 0
+>     # terrain.height_field_raw[:, min(mid_y+half_valid_width, terrain.height_field_raw.shape[1]):] = 0
+>     # terrain.height_field_raw[:, :] = 0
+>     # pad edges
+>     pad_width = int(pad_width // terrain.horizontal_scale)
+>     pad_height = int(pad_height // terrain.vertical_scale)
+>     terrain.height_field_raw[:, :pad_width] = pad_height
+>     terrain.height_field_raw[:, -pad_width:] = pad_height
+>     terrain.height_field_raw[:pad_width, :] = pad_height
+>     terrain.height_field_raw[-pad_width:, :] = pad_height
+> 
+> def parkour_step_terrain(terrain,
+>                            platform_len=2.5, 
+>                            platform_height=0., 
+>                            num_stones=8,
+>                         #    x_range=[1.5, 2.4],
+>                             x_range=[0.2, 0.4],
+>                            y_range=[-0.15, 0.15],
+>                            half_valid_width=[0.45, 0.5],
+>                            step_height = 0.2,
+>                            pad_width=0.1,
+>                            pad_height=0.5):
+>     goals = np.zeros((num_stones+2, 2))
+>     # terrain.height_field_raw[:] = -200
+>     mid_y = terrain.length // 2  # length is actually y width
+> 
+>     dis_x_min = round( (x_range[0] + step_height) / terrain.horizontal_scale)
+>     dis_x_max = round( (x_range[1] + step_height) / terrain.horizontal_scale)
+>     dis_y_min = round(y_range[0] / terrain.horizontal_scale)
+>     dis_y_max = round(y_range[1] / terrain.horizontal_scale)
+> 
+>     step_height = round(step_height / terrain.vertical_scale)
+> 
+>     half_valid_width = round(np.random.uniform(half_valid_width[0], half_valid_width[1]) / terrain.horizontal_scale)
+> 
+>     platform_len = round(platform_len / terrain.horizontal_scale)
+>     platform_height = round(platform_height / terrain.vertical_scale)
+>     terrain.height_field_raw[0:platform_len, :] = platform_height
+> 
+>     # stone_width = round(stone_width / terrain.horizontal_scale)
+>     
+>     # incline_height = round(incline_height / terrain.vertical_scale)
+>     # last_incline_height = round(last_incline_height / terrain.vertical_scale)
+> 
+>     dis_x = platform_len
+>     last_dis_x = dis_x
+>     stair_height = 0
+>     goals[0] = [platform_len - round(1 / terrain.horizontal_scale), mid_y]
+>     for i in range(num_stones):
+>         rand_x = np.random.randint(dis_x_min, dis_x_max)
+>         rand_y = np.random.randint(dis_y_min, dis_y_max)
+>         if i < num_stones // 2:
+>             stair_height += step_height
+>         elif i > num_stones // 2:
+>             stair_height -= step_height
+>         terrain.height_field_raw[dis_x:dis_x+rand_x, ] = stair_height
+>         dis_x += rand_x
+>         terrain.height_field_raw[last_dis_x:dis_x, :mid_y+rand_y-half_valid_width] = 0
+>         terrain.height_field_raw[last_dis_x:dis_x, mid_y+rand_y+half_valid_width:] = 0
+>         
+>         last_dis_x = dis_x
+>         goals[i+1] = [dis_x-rand_x//2, mid_y+rand_y]
+>     final_dis_x = dis_x + np.random.randint(dis_x_min, dis_x_max)
+>     # import ipdb; ipdb.set_trace()
+>     if final_dis_x > terrain.width:
+>         final_dis_x = terrain.width - 0.5 // terrain.horizontal_scale
+>     goals[-1] = [final_dis_x, mid_y]
+>     
+>     terrain.goals = goals * terrain.horizontal_scale
+>     
+>     # terrain.height_field_raw[:, :max(mid_y-half_valid_width, 0)] = 0
+>     # terrain.height_field_raw[:, min(mid_y+half_valid_width, terrain.height_field_raw.shape[1]):] = 0
+>     # terrain.height_field_raw[:, :] = 0
+>     # pad edges
+>     pad_width = int(pad_width // terrain.horizontal_scale)
+>     pad_height = int(pad_height // terrain.vertical_scale)
+>     terrain.height_field_raw[:, :pad_width] = pad_height
+>     terrain.height_field_raw[:, -pad_width:] = pad_height
+>     terrain.height_field_raw[:pad_width, :] = pad_height
+>     terrain.height_field_raw[-pad_width:, :] = pad_height
+> 
+> def demo_terrain(terrain):
+>     goals = np.zeros((8, 2))
+>     mid_y = terrain.length // 2
+>     
+>     # hurdle
+>     platform_length = round(2 / terrain.horizontal_scale)
+>     hurdle_depth = round(np.random.uniform(0.35, 0.4) / terrain.horizontal_scale)
+>     hurdle_height = round(np.random.uniform(0.3, 0.36) / terrain.vertical_scale)
+>     hurdle_width = round(np.random.uniform(1, 1.2) / terrain.horizontal_scale)
+>     goals[0] = [platform_length + hurdle_depth/2, mid_y]
+>     terrain.height_field_raw[platform_length:platform_length+hurdle_depth, round(mid_y-hurdle_width/2):round(mid_y+hurdle_width/2)] = hurdle_height
+>     
+>     # step up
+>     platform_length += round(np.random.uniform(1.5, 2.5) / terrain.horizontal_scale)
+>     first_step_depth = round(np.random.uniform(0.45, 0.8) / terrain.horizontal_scale)
+>     first_step_height = round(np.random.uniform(0.35, 0.45) / terrain.vertical_scale)
+>     first_step_width = round(np.random.uniform(1, 1.2) / terrain.horizontal_scale)
+>     goals[1] = [platform_length+first_step_depth/2, mid_y]
+>     terrain.height_field_raw[platform_length:platform_length+first_step_depth, round(mid_y-first_step_width/2):round(mid_y+first_step_width/2)] = first_step_height
+>     
+>     platform_length += first_step_depth
+>     second_step_depth = round(np.random.uniform(0.45, 0.8) / terrain.horizontal_scale)
+>     second_step_height = first_step_height
+>     second_step_width = first_step_width
+>     goals[2] = [platform_length+second_step_depth/2, mid_y]
+>     terrain.height_field_raw[platform_length:platform_length+second_step_depth, round(mid_y-second_step_width/2):round(mid_y+second_step_width/2)] = second_step_height
+>     
+>     # gap
+>     platform_length += second_step_depth
+>     gap_size = round(np.random.uniform(0.5, 0.8) / terrain.horizontal_scale)
+>     
+>     # step down
+>     platform_length += gap_size
+>     third_step_depth = round(np.random.uniform(0.25, 0.6) / terrain.horizontal_scale)
+>     third_step_height = first_step_height
+>     third_step_width = round(np.random.uniform(1, 1.2) / terrain.horizontal_scale)
+>     goals[3] = [platform_length+third_step_depth/2, mid_y]
+>     terrain.height_field_raw[platform_length:platform_length+third_step_depth, round(mid_y-third_step_width/2):round(mid_y+third_step_width/2)] = third_step_height
+>     
+>     platform_length += third_step_depth
+>     forth_step_depth = round(np.random.uniform(0.25, 0.6) / terrain.horizontal_scale)
+>     forth_step_height = first_step_height
+>     forth_step_width = third_step_width
+>     goals[4] = [platform_length+forth_step_depth/2, mid_y]
+>     terrain.height_field_raw[platform_length:platform_length+forth_step_depth, round(mid_y-forth_step_width/2):round(mid_y+forth_step_width/2)] = forth_step_height
+>     
+>     # parkour
+>     platform_length += forth_step_depth
+>     gap_size = round(np.random.uniform(0.1, 0.4) / terrain.horizontal_scale)
+>     platform_length += gap_size
+>     
+>     left_y = mid_y + round(np.random.uniform(0.15, 0.3) / terrain.horizontal_scale)
+>     right_y = mid_y - round(np.random.uniform(0.15, 0.3) / terrain.horizontal_scale)
+>     
+>     slope_height = round(np.random.uniform(0.15, 0.22) / terrain.vertical_scale)
+>     slope_depth = round(np.random.uniform(0.75, 0.85) / terrain.horizontal_scale)
+>     slope_width = round(1.0 / terrain.horizontal_scale)
+>     
+>     platform_height = slope_height + np.random.randint(0, 0.2 / terrain.vertical_scale)
+> 
+>     goals[5] = [platform_length+slope_depth/2, left_y]
+>     heights = np.tile(np.linspace(-slope_height, slope_height, slope_width), (slope_depth, 1)) * 1
+>     terrain.height_field_raw[platform_length:platform_length+slope_depth, left_y-slope_width//2: left_y+slope_width//2] = heights.astype(int) + platform_height
+>     
+>     platform_length += slope_depth + gap_size
+>     goals[6] = [platform_length+slope_depth/2, right_y]
+>     heights = np.tile(np.linspace(-slope_height, slope_height, slope_width), (slope_depth, 1)) * -1
+>     terrain.height_field_raw[platform_length:platform_length+slope_depth, right_y-slope_width//2: right_y+slope_width//2] = heights.astype(int) + platform_height
+>     
+>     platform_length += slope_depth + gap_size + round(0.4 / terrain.horizontal_scale)
+>     goals[-1] = [platform_length, left_y]
+>     terrain.goals = goals * terrain.horizontal_scale
+> 
+187a786,943
+> 
+> def half_sloped_terrain(terrain, wall_width=4, start2center=0.7, max_height=1):
+>     wall_width_int = max(int(wall_width / terrain.horizontal_scale), 1)
+>     max_height_int = int(max_height / terrain.vertical_scale)
+>     slope_start = int(start2center / terrain.horizontal_scale + terrain.length // 2)
+>     terrain_length = terrain.length
+>     height2width_ratio = max_height_int / wall_width_int
+>     xs = np.arange(slope_start, terrain_length)
+>     heights = (height2width_ratio * (xs - slope_start)).clip(max=max_height_int).astype(np.int16)
+>     terrain.height_field_raw[slope_start:terrain_length, :] = heights[:, None]
+>     terrain.slope_vector = np.array([wall_width_int*terrain.horizontal_scale, 0., max_height]).astype(np.float32)
+>     terrain.slope_vector /= np.linalg.norm(terrain.slope_vector)
+>     # print(terrain.slope_vector, wall_width)
+>     # import matplotlib.pyplot as plt
+>     # plt.imsave('test.png', terrain.height_field_raw, cmap='gray')
+> 
+> def half_platform_terrain(terrain, start2center=2, max_height=1):
+>     max_height_int = int(max_height / terrain.vertical_scale)
+>     slope_start = int(start2center / terrain.horizontal_scale + terrain.length // 2)
+>     terrain_length = terrain.length
+>     terrain.height_field_raw[:, :] = max_height_int
+>     terrain.height_field_raw[-slope_start:slope_start, -slope_start:slope_start] = 0
+>     # print(terrain.slope_vector, wall_width)
+>     # import matplotlib.pyplot as plt
+>     # plt.imsave('test.png', terrain.height_field_raw, cmap='gray')
+> 
+> def stepping_stones_terrain(terrain, stone_size, stone_distance, max_height, platform_size=1., depth=-1):
+>     """
+>     Generate a stepping stones terrain
+> 
+>     Parameters:
+>         terrain (terrain): the terrain
+>         stone_size (float): horizontal size of the stepping stones [meters]
+>         stone_distance (float): distance between stones (i.e size of the holes) [meters]
+>         max_height (float): maximum height of the stones (positive and negative) [meters]
+>         platform_size (float): size of the flat platform at the center of the terrain [meters]
+>         depth (float): depth of the holes (default=-10.) [meters]
+>     Returns:
+>         terrain (SubTerrain): update terrain
+>     """
+>     def get_rand_dis_int(scale):
+>         return np.random.randint(int(- scale / terrain.horizontal_scale + 1), int(scale / terrain.horizontal_scale))
+>     # switch parameters to discrete units
+>     stone_size = int(stone_size / terrain.horizontal_scale)
+>     stone_distance = int(stone_distance / terrain.horizontal_scale)
+>     max_height = int(max_height / terrain.vertical_scale)
+>     platform_size = int(platform_size / terrain.horizontal_scale)
+>     height_range = np.arange(-max_height-1, max_height, step=1)
+> 
+>     start_x = 0
+>     start_y = 0
+>     terrain.height_field_raw[:, :] = int(depth / terrain.vertical_scale)
+>     if terrain.length >= terrain.width:
+>         while start_y < terrain.length:
+>             stop_y = min(terrain.length, start_y + stone_size)
+>             start_x = np.random.randint(0, stone_size)
+>             # fill first hole
+>             stop_x = max(0, start_x - stone_distance - get_rand_dis_int(0.2))
+>             terrain.height_field_raw[0: stop_x, start_y: stop_y] = np.random.choice(height_range)
+>             # fill row
+>             while start_x < terrain.width:
+>                 stop_x = min(terrain.width, start_x + stone_size)
+>                 terrain.height_field_raw[start_x: stop_x, start_y: stop_y] = np.random.choice(height_range)
+>                 start_x += stone_size + stone_distance + get_rand_dis_int(0.2)
+>             start_y += stone_size + stone_distance + get_rand_dis_int(0.2)
+>     elif terrain.width > terrain.length:
+>         while start_x < terrain.width:
+>             stop_x = min(terrain.width, start_x + stone_size)
+>             start_y = np.random.randint(0, stone_size)
+>             # fill first hole
+>             stop_y = max(0, start_y - stone_distance)
+>             terrain.height_field_raw[start_x: stop_x, 0: stop_y] = np.random.choice(height_range)
+>             # fill column
+>             while start_y < terrain.length:
+>                 stop_y = min(terrain.length, start_y + stone_size)
+>                 terrain.height_field_raw[start_x: stop_x, start_y: stop_y] = np.random.choice(height_range)
+>                 start_y += stone_size + stone_distance
+>             start_x += stone_size + stone_distance
+> 
+>     x1 = (terrain.width - platform_size) // 2
+>     x2 = (terrain.width + platform_size) // 2
+>     y1 = (terrain.length - platform_size) // 2
+>     y2 = (terrain.length + platform_size) // 2
+>     terrain.height_field_raw[x1:x2, y1:y2] = 0
+>     return terrain
+> 
+> def convert_heightfield_to_trimesh_delatin(height_field_raw, horizontal_scale, vertical_scale, max_error=0.01):
+>     mesh = Delatin(np.flip(height_field_raw, axis=1).T, z_scale=vertical_scale, max_error=max_error)
+>     vertices = np.zeros_like(mesh.vertices)
+>     vertices[:, :2] = mesh.vertices[:, :2] * horizontal_scale
+>     vertices[:, 2] = mesh.vertices[:, 2]
+>     return vertices, mesh.triangles
+> 
+> def convert_heightfield_to_trimesh(height_field_raw, horizontal_scale, vertical_scale, slope_threshold=None):
+>     """
+>     Convert a heightfield array to a triangle mesh represented by vertices and triangles.
+>     Optionally, corrects vertical surfaces above the provide slope threshold:
+> 
+>         If (y2-y1)/(x2-x1) > slope_threshold -> Move A to A' (set x1 = x2). Do this for all directions.
+>                    B(x2,y2)
+>                   /|
+>                  / |
+>                 /  |
+>         (x1,y1)A---A'(x2',y1)
+> 
+>     Parameters:
+>         height_field_raw (np.array): input heightfield
+>         horizontal_scale (float): horizontal scale of the heightfield [meters]
+>         vertical_scale (float): vertical scale of the heightfield [meters]
+>         slope_threshold (float): the slope threshold above which surfaces are made vertical. If None no correction is applied (default: None)
+>     Returns:
+>         vertices (np.array(float)): array of shape (num_vertices, 3). Each row represents the location of each vertex [meters]
+>         triangles (np.array(int)): array of shape (num_triangles, 3). Each row represents the indices of the 3 vertices connected by this triangle.
+>     """
+>     hf = height_field_raw
+>     num_rows = hf.shape[0]
+>     num_cols = hf.shape[1]
+> 
+>     y = np.linspace(0, (num_cols-1)*horizontal_scale, num_cols)
+>     x = np.linspace(0, (num_rows-1)*horizontal_scale, num_rows)
+>     yy, xx = np.meshgrid(y, x)
+> 
+>     if slope_threshold is not None:
+> 
+>         slope_threshold *= horizontal_scale / vertical_scale
+>         move_x = np.zeros((num_rows, num_cols))
+>         move_y = np.zeros((num_rows, num_cols))
+>         move_corners = np.zeros((num_rows, num_cols))
+>         move_x[:num_rows-1, :] += (hf[1:num_rows, :] - hf[:num_rows-1, :] > slope_threshold)
+>         move_x[1:num_rows, :] -= (hf[:num_rows-1, :] - hf[1:num_rows, :] > slope_threshold)
+>         move_y[:, :num_cols-1] += (hf[:, 1:num_cols] - hf[:, :num_cols-1] > slope_threshold)
+>         move_y[:, 1:num_cols] -= (hf[:, :num_cols-1] - hf[:, 1:num_cols] > slope_threshold)
+>         move_corners[:num_rows-1, :num_cols-1] += (hf[1:num_rows, 1:num_cols] - hf[:num_rows-1, :num_cols-1] > slope_threshold)
+>         move_corners[1:num_rows, 1:num_cols] -= (hf[:num_rows-1, :num_cols-1] - hf[1:num_rows, 1:num_cols] > slope_threshold)
+>         xx += (move_x + move_corners*(move_x == 0)) * horizontal_scale
+>         yy += (move_y + move_corners*(move_y == 0)) * horizontal_scale
+> 
+>     # create triangle mesh vertices and triangles from the heightfield grid
+>     vertices = np.zeros((num_rows*num_cols, 3), dtype=np.float32)
+>     vertices[:, 0] = xx.flatten()
+>     vertices[:, 1] = yy.flatten()
+>     vertices[:, 2] = hf.flatten() * vertical_scale
+>     triangles = -np.ones((2*(num_rows-1)*(num_cols-1), 3), dtype=np.uint32)
+>     for i in range(num_rows - 1):
+>         ind0 = np.arange(0, num_cols-1) + i*num_cols
+>         ind1 = ind0 + 1
+>         ind2 = ind0 + num_cols
+>         ind3 = ind2 + 1
+>         start = 2*i*(num_cols-1)
+>         stop = start + 2*(num_cols-1)
+>         triangles[start:stop:2, 0] = ind0
+>         triangles[start:stop:2, 1] = ind3
+>         triangles[start:stop:2, 2] = ind1
+>         triangles[start+1:stop:2, 0] = ind0
+>         triangles[start+1:stop:2, 1] = ind2
+>         triangles[start+1:stop:2, 2] = ind3
+> 
+>     return vertices, triangles, move_x != 0
+\ No newline at end of file
+Only in /home/xinyi/extreme-parkour/legged_gym/legged_gym/utils: webviewer.html
+Only in /home/xinyi/extreme-parkour/legged_gym/legged_gym/utils: webviewer.py
