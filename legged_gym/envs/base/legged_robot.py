@@ -346,7 +346,8 @@ class LeggedRobot(BaseTask):
             self.commands[env_ids, 3] = torch_rand_float(self.command_ranges["heading"][0], self.command_ranges["heading"][1], (len(env_ids), 1), device=self.device).squeeze(1)
         else:
             self.commands[env_ids, 2] = torch_rand_float(self.command_ranges["ang_vel_yaw"][0], self.command_ranges["ang_vel_yaw"][1], (len(env_ids), 1), device=self.device).squeeze(1)
-
+        if self.cfg.train_jump:
+            self.commands[env_ids, 4] = torch_rand_float(self.command_ranges["jump_start_z_vel"][0], self.command_ranges["jump_start_z_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)
         # set small commands to zero
         self.commands[env_ids, :2] *= (torch.norm(self.commands[env_ids, :2], dim=1) > 0.2).unsqueeze(1)
 
@@ -815,7 +816,15 @@ class LeggedRobot(BaseTask):
     #------------ reward functions----------------
     def _reward_lin_vel_z(self):
         # Penalize z axis base linear velocity
-        return torch.square(self.base_lin_vel[:, 2])
+        # print(self.commands[:, 4])
+        if self.cfg.train_jump:
+            z_vel_error  = torch.square(self.base_lin_vel[:, 2] - self.commands[:, 4])
+            # sigmoided_err = torch.exp(- z_vel_error/self.cfg.rewards.tracking_sigma)
+            # print("z_vel_error, sigmoided_err = ",z_vel_error, sigmoided_err)
+            print("[debug]  vel_z, cmd", self.base_lin_vel[:4, 2], self.commands[:4, 4])
+            return z_vel_error
+        else:
+            return torch.square(self.base_lin_vel[:, 2])
     
     def _reward_ang_vel_xy(self):
         # Penalize xy axes base angular velocity
@@ -825,11 +834,11 @@ class LeggedRobot(BaseTask):
         # Penalize non flat base orientation
         return torch.sum(torch.square(self.projected_gravity[:, :2]), dim=1)
 
-    def _reward_base_height(self):
-        # Penalize base height away from target
-        base_height = torch.mean(self.root_states[:, 2].unsqueeze(1) - self.measured_heights, dim=1)
-        return torch.square(base_height - self.cfg.rewards.base_height_target)
-    
+    # def _reward_base_height(self):
+    #     # Penalize base height away from target
+    #     base_height = torch.mean(self.root_states[:, 2].unsqueeze(1) - self.measured_heights, dim=1)
+    #     return torch.square(base_height - self.cfg.rewards.base_height_target)
+     
     def _reward_torques(self):
         # Penalize torques
         return torch.sum(torch.square(self.torques), dim=1)

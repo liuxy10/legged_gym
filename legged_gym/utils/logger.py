@@ -96,13 +96,16 @@ class Logger:
         a.legend()
         # plot base vel yaw
         a = axs[0, 2]
-        if log["base_vel_yaw"]: a.plot(time, log["base_vel_yaw"], label='measured')
+        if log["base_vel_yaw"]: a.plot(time, log["base_vel_yaw"], label='measured_yaw')
+        if log["base_vel_roll"]: a.plot(time, log["base_vel_roll"], label='measured_roll')
+        if log["base_vel_pitch"]: a.plot(time, log["base_vel_pitch"], label='measured_pitch')
         if log["command_yaw"]: a.plot(time, log["command_yaw"], label='commanded')
         a.set(xlabel='time [s]', ylabel='base ang vel [rad/s]', title='Base velocity yaw')
         a.legend()
         # plot base vel z
         a = axs[1, 2]
         if log["base_vel_z"]: a.plot(time, log["base_vel_z"], label='measured')
+        if log["command_z"]: a.plot(time, log["command_z"], label='commanded')
         a.set(xlabel='time [s]', ylabel='base lin vel [m/s]', title='Base velocity z')
         a.legend()
         # plot contact forces
