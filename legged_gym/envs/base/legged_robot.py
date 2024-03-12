@@ -348,6 +348,8 @@ class LeggedRobot(BaseTask):
             self.commands[env_ids, 2] = torch_rand_float(self.command_ranges["ang_vel_yaw"][0], self.command_ranges["ang_vel_yaw"][1], (len(env_ids), 1), device=self.device).squeeze(1)
         if self.cfg.train_jump:
             self.commands[env_ids, 4] = torch_rand_float(self.command_ranges["jump_start_z_vel"][0], self.command_ranges["jump_start_z_vel"][1], (len(env_ids), 1), device=self.device).squeeze(1)
+            self.commands[env_ids, 5] = torch_rand_float(self.command_ranges["jump_start_z"][0], self.command_ranges["jump_start_z"][1], (len(env_ids), 1), device=self.device).squeeze(1)
+
         # set small commands to zero
         self.commands[env_ids, :2] *= (torch.norm(self.commands[env_ids, :2], dim=1) > 0.2).unsqueeze(1)
 
@@ -842,19 +844,20 @@ class LeggedRobot(BaseTask):
         # Reward height off ground
         # Need to filter the contacts because the contact reporting of PhysX is unreliable on meshes
         no_contact = self.contact_forces[:, self.feet_indices, 2] < 1.
-        print("no_contact sum",torch.sum(no_contact, dim = 0))
+        # print("no_contact sum",torch.sum(no_contact, dim = 0))
         none_contact = torch.logical_and(no_contact[:,3],torch.logical_and(no_contact[:,2],torch.logical_and(no_contact[:,1],no_contact[:,0])))
         
         
-        print(none_contact.shape, "torch.sum(none_contact)",torch.sum(none_contact))
-        height_err= self.root_states[:,2] 
+        print("none contact ratio =",torch.sum(none_contact)/4096)
+        height_err_sqr= torch.square(self.root_states[:,2])
         # print("self.feet_air_time",self.feet_air_time.shape)
         # contact_filt = torch.logical_or(no_contact, ~self.last_contacts) 
         # self.feet_air_time += self.dt
         # rew_airTime = torch.sum((self.feet_air_time - 0.5) * first_contact, dim=1) # reward only on first contact with the ground
         # rew_airTime *= torch.norm(self.commands[:, :2], dim=1) > 0.1 #no reward for zero command
         # self.feet_air_time *= ~contact_filt
-        return none_contact * height
+        print("command [:,5] = ",torch.mean(self.commands[:,5]) )
+        return none_contact * (-height_err_sqr + torch.square(self.commands[:,5] - self.cfg.rewards.base_height_target) + 5.)
 
 
     #------------ reward functions----------------

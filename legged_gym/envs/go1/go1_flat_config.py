@@ -73,11 +73,11 @@ class Go1FlatCfg( Go1RoughCfg ):
             
             
             # new reward funcs to be formulated
-            lin_vel_z = 5.0 
+            
             height_off_ground = 3.
             
             # zeros ones rewards are disabled
-
+            lin_vel_z = 0.0 
             torques = -0.0
             feet_air_time =  .0
             termination = -0.0
@@ -93,7 +93,7 @@ class Go1FlatCfg( Go1RoughCfg ):
     class commands(LeggedRobotCfg.commands ):
         curriculum = False
         max_curriculum = 1.
-        num_commands = 5 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error) # added jump_satrt_z_vel
+        num_commands = 6 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error) # added jump_satrt_z_vel
         resampling_time = 4. # time before command are changed[s]
         heading_command = False # if true: compute ang vel command from heading error
         class ranges:
@@ -103,7 +103,7 @@ class Go1FlatCfg( Go1RoughCfg ):
             heading = [-3.14, 3.14]
             jump_start_z_vel = [0.5, 1.2] # [m/s]
 
-        
+            jump_start_z = [0.25, .8] # [m]
 
     
 

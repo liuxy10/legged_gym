@@ -85,7 +85,7 @@ class Logger:
         # plot base vel x
         a = axs[0, 0]
         if log["base_vel_x"]: a.plot(time, log["base_vel_x"], label='measured')
-        if log["command_x"]: a.plot(time, log["command_x"], label='commanded')
+        if log["command_x_vel"]: a.plot(time, log["command_x_vel"], label='commanded')
         a.set(xlabel='time [s]', ylabel='base lin vel [m/s]', title='Base velocity x')
         a.legend()
         
@@ -99,7 +99,7 @@ class Logger:
         # plot base z
         a = axs[0, 1]
         if log["base_pos_z"]: a.scatter(time, log["base_pos_z"], label='measured')
-        # if log["command_y"]: a.plot(time, log["command_y"], label='commanded')
+        if log["command_z_pos"]: a.plot(time, log["command_z_pos"], label='commanded')
         a.set(xlabel='time [s]', ylabel='base z [m]', title='Base z position')
         a.legend()
 
