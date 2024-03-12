@@ -812,19 +812,53 @@ class LeggedRobot(BaseTask):
         heights = torch.min(heights, heights3)
 
         return heights.view(self.num_envs, -1) * self.terrain.cfg.vertical_scale
+    
 
-    #------------ reward functions----------------
+    # ------------- jump reward function ---------------
+
     def _reward_lin_vel_z(self):
         # Penalize z axis base linear velocity
         # print(self.commands[:, 4])
         if self.cfg.train_jump:
-            z_vel_error  = torch.square(self.base_lin_vel[:, 2] - self.commands[:, 4])
-            # sigmoided_err = torch.exp(- z_vel_error/self.cfg.rewards.tracking_sigma)
-            # print("z_vel_error, sigmoided_err = ",z_vel_error, sigmoided_err)
-            print("[debug]  vel_z, cmd", self.base_lin_vel[:4, 2], self.commands[:4, 4])
-            return z_vel_error
+            z_vel_pos_sq = torch.square(torch.clip(self.base_lin_vel[:, 2], 0,  None))
+            z_vel_target_sq = torch.square(self.commands[:, 4])
+            scale = z_vel_pos_sq/z_vel_target_sq
+            # print(scale[0])
+            scale = torch.clip(scale, 0,1)
+
+            # print("[debug]  vel_z, cmd", self.base_lin_vel[:4, 2], self.commands[:4, 4])
+            # print(scale, scale * z_vel_target_sq)
+             # if scale[0]>0: 
+            #     print ("1")
+            # else:
+            #     print("0") 
+            # print(scale[0], self.dt)  
+            return scale * z_vel_target_sq
+            
         else:
             return torch.square(self.base_lin_vel[:, 2])
+        
+    def _reward_height_off_ground(self):
+        # Reward height off ground
+        # Need to filter the contacts because the contact reporting of PhysX is unreliable on meshes
+        no_contact = self.contact_forces[:, self.feet_indices, 2] < 1.
+        print("no_contact sum",torch.sum(no_contact, dim = 0))
+        none_contact = torch.logical_and(no_contact[:,3],torch.logical_and(no_contact[:,2],torch.logical_and(no_contact[:,1],no_contact[:,0])))
+        
+        
+        print(none_contact.shape, "torch.sum(none_contact)",torch.sum(none_contact))
+        height_err= self.root_states[:,2] 
+        # print("self.feet_air_time",self.feet_air_time.shape)
+        # contact_filt = torch.logical_or(no_contact, ~self.last_contacts) 
+        # self.feet_air_time += self.dt
+        # rew_airTime = torch.sum((self.feet_air_time - 0.5) * first_contact, dim=1) # reward only on first contact with the ground
+        # rew_airTime *= torch.norm(self.commands[:, :2], dim=1) > 0.1 #no reward for zero command
+        # self.feet_air_time *= ~contact_filt
+        return none_contact * height
+
+
+    #------------ reward functions----------------
+
     
     def _reward_ang_vel_xy(self):
         # Penalize xy axes base angular velocity
@@ -861,6 +895,7 @@ class LeggedRobot(BaseTask):
     
     def _reward_termination(self):
         # Terminal reward / penalty
+        # print("[_reward_termination]",self.reset_buf * ~self.time_out_buf)
         return self.reset_buf * ~self.time_out_buf
     
     def _reward_dof_pos_limits(self):
@@ -900,6 +935,8 @@ class LeggedRobot(BaseTask):
         rew_airTime *= torch.norm(self.commands[:, :2], dim=1) > 0.1 #no reward for zero command
         self.feet_air_time *= ~contact_filt
         return rew_airTime
+    
+
     
     def _reward_stumble(self):
         # Penalize feet hitting vertical surfaces

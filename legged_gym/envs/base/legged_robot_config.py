@@ -135,6 +135,8 @@ class LeggedRobotCfg(BaseConfig):
             tracking_lin_vel = 0.00
             tracking_ang_vel = 0.00
             lin_vel_z = -3.0
+            height_off_ground = 3.
+
             ang_vel_xy = -0.00
             orientation = -0.
             torques = -0.00001

@@ -62,7 +62,7 @@ class Logger:
         self.plot_process = Process(target=self._plot)
         self.plot_process.start()
 
-    def _plot(self):
+    def _plot(self): 
         nb_rows = 3
         nb_cols = 3
         fig, axs = plt.subplots(nb_rows, nb_cols)
@@ -88,12 +88,22 @@ class Logger:
         if log["command_x"]: a.plot(time, log["command_x"], label='commanded')
         a.set(xlabel='time [s]', ylabel='base lin vel [m/s]', title='Base velocity x')
         a.legend()
-        # plot base vel y
+        
+        # # plot base vel y
+        # a = axs[0, 1]
+        # if log["base_vel_y"]: a.plot(time, log["base_vel_y"], label='measured')
+        # if log["command_y"]: a.plot(time, log["command_y"], label='commanded')
+        # a.set(xlabel='time [s]', ylabel='base lin vel [m/s]', title='Base velocity y')
+        # a.legend()
+        
+        # plot base z
         a = axs[0, 1]
-        if log["base_vel_y"]: a.plot(time, log["base_vel_y"], label='measured')
-        if log["command_y"]: a.plot(time, log["command_y"], label='commanded')
-        a.set(xlabel='time [s]', ylabel='base lin vel [m/s]', title='Base velocity y')
+        if log["base_pos_z"]: a.scatter(time, log["base_pos_z"], label='measured')
+        # if log["command_y"]: a.plot(time, log["command_y"], label='commanded')
+        a.set(xlabel='time [s]', ylabel='base z [m]', title='Base z position')
         a.legend()
+
+
         # plot base vel yaw
         a = axs[0, 2]
         if log["base_vel_yaw"]: a.plot(time, log["base_vel_yaw"], label='measured_yaw')
@@ -104,8 +114,8 @@ class Logger:
         a.legend()
         # plot base vel z
         a = axs[1, 2]
-        if log["base_vel_z"]: a.plot(time, log["base_vel_z"], label='measured')
-        if log["command_z"]: a.plot(time, log["command_z"], label='commanded')
+        if log["base_vel_z"]: a.scatter(time, log["base_vel_z"], label='measured')
+        if log["command_z"]: a.scatter(time, log["command_z"], label='commanded')
         a.set(xlabel='time [s]', ylabel='base lin vel [m/s]', title='Base velocity z')
         a.legend()
         # plot contact forces
