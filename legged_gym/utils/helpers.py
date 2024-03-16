@@ -100,9 +100,11 @@ def parse_sim_params(args, cfg):
 
     return sim_params
 
-def get_load_path(root, load_run=-1, checkpoint=-1):
+def get_load_path(root, run_name = None, load_run=-1, checkpoint=-1):
     try:
         runs = os.listdir(root)
+        if run_name:
+            runs = [run for run in runs if run.endswith(run_name)]
         #TODO sort by date to handle change of month
         runs.sort()
         if 'exported' in runs: runs.remove('exported')
@@ -157,6 +159,7 @@ def get_args():
         {"name": "--run_name", "type": str,  "help": "Name of the run. Overrides config file if provided."},
         {"name": "--load_run", "type": str,  "help": "Name of the run to load when resume=True. If -1: will load the last run. Overrides config file if provided."},
         {"name": "--checkpoint", "type": int,  "help": "Saved model checkpoint number. If -1: will load the last checkpoint. Overrides config file if provided."},
+        {"name": "--draw_goals", "action": "store_true", "default": False, "help": "Force display off at all times"},
         
         {"name": "--headless", "action": "store_true", "default": False, "help": "Force display off at all times"},
         {"name": "--horovod", "action": "store_true", "default": False, "help": "Use horovod for multi-gpu training"},

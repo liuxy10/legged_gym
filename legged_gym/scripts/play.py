@@ -49,6 +49,7 @@ def play(args):
     env_cfg.noise.add_noise = False
     env_cfg.domain_rand.randomize_friction = False
     env_cfg.domain_rand.push_robots = False
+    env_cfg.draw_goals = args.draw_goals 
 
     # prepare environment
     env, _ = task_registry.make_env(name=args.task, args=args, env_cfg=env_cfg)
@@ -67,7 +68,7 @@ def play(args):
     logger = Logger(env.dt)
     robot_index = 0 # which robot is used for logging
     joint_index = 1 # which joint is used for logging
-    stop_state_log = 100 # number of steps before plotting states
+    stop_state_log = 300 # number of steps before plotting states
     stop_rew_log = env.max_episode_length + 1 # number of steps before print average episode rewards
     camera_position = np.array(env_cfg.viewer.pos, dtype=float)
     camera_vel = np.array([1., 1., 0.])
@@ -93,11 +94,16 @@ def play(args):
                     'dof_pos_z': env.dof_pos[robot_index, joint_index].item(),
                     'dof_vel': env.dof_vel[robot_index, joint_index].item(),
                     'base_pos_z': env.root_states[robot_index,2].item(),
+                    'base_pos_x': env.root_states[robot_index,0].item(),
+                    'base_pos_y': env.root_states[robot_index,1].item(),
+                    
                     'dof_torque': env.torques[robot_index, joint_index].item(),
                     'command_x_vel': env.commands[robot_index, 0].item(),
                     'command_y_vel': env.commands[robot_index, 1].item(),
                     'command_z_vel': env.commands[robot_index, 4].item(),
                     'command_z_pos': env.commands[robot_index, 5].item(),
+                    'command_x_pos': env.commands[robot_index, 6].item(),
+                    'command_y_pos': env.commands[robot_index, 7].item(),
                     'command_yaw': env.commands[robot_index, 2].item(),
                     'base_vel_x': env.base_lin_vel[robot_index, 0].item(),
                     'base_vel_y': env.base_lin_vel[robot_index, 1].item(),
@@ -105,6 +111,7 @@ def play(args):
                     'base_vel_yaw': env.base_ang_vel[robot_index, 2].item(),
                     'base_vel_roll': env.base_ang_vel[robot_index, 0].item(),
                     'contact_forces_z': env.contact_forces[robot_index, env.feet_indices, 2].cpu().numpy()
+                    
                 }
             )
         elif i==stop_state_log:

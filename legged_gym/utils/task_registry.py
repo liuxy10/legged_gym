@@ -88,6 +88,7 @@ class TaskRegistry():
         if env_cfg is None:
             # load config files
             env_cfg, _ = self.get_cfgs(name)
+            env_cfg.draw_goals = args.draw_goals
         # override cfg from args (if specified)
         env_cfg, _ = update_cfg_from_args(env_cfg, None, args)
         set_seed(env_cfg.seed)
@@ -149,7 +150,8 @@ class TaskRegistry():
         resume = train_cfg.runner.resume
         if resume:
             # load previously trained model
-            resume_path = get_load_path(log_root, load_run=train_cfg.runner.load_run, checkpoint=train_cfg.runner.checkpoint)
+            # print("[****] run name = ",args.run_name )
+            resume_path = get_load_path(log_root, args.run_name, load_run=train_cfg.runner.load_run, checkpoint=train_cfg.runner.checkpoint)
             print(f"Loading model from: {resume_path}")
             runner.load(resume_path)
         return runner, train_cfg

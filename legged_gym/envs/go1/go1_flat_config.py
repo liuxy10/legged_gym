@@ -29,14 +29,16 @@
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
 from legged_gym.envs.go1.go1_rough_config import Go1RoughCfg, Go1RoughCfgPPO
-from legged_gym.envs.base.legged_robot_config import LeggedRobotCfg, LeggedRobotCfgPPO
+from legged_gym.envs.base.legged_robot_config import LeggedRobotCfg
 
 
 class Go1FlatCfg( Go1RoughCfg ):
     train_jump = True
+    draw_goal = False
 
     class env( Go1RoughCfg.env ):
         num_observations = 48
+        
 
     class terrain( Go1RoughCfg.terrain ):
         mesh_type = 'plane'
@@ -45,7 +47,7 @@ class Go1FlatCfg( Go1RoughCfg ):
 
     class asset( Go1RoughCfg.asset ):
         # file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/go1/urdf/go1_new.urdf'
-        self_collisions = 0 # 1 to disable, 0 to enable...bitwise filter
+        self_collisions = 1 # 1 to disable, 0 to enable...bitwise filter
   
     class rewards( Go1RoughCfg.rewards ):
 
@@ -60,27 +62,29 @@ class Go1FlatCfg( Go1RoughCfg ):
         
         soft_dof_pos_limit = 0.9
         base_height_target = 0.25
+      
 
         class scales:
-            
-            
-            ang_vel_xy = -0.05
+            ang_vel_xy = -0.05#-0.05
             
             dof_acc = -2.5e-7
             action_rate = -0.01
-            collision = -3.
+            collision = -0.5
             orientation = -1.
-            
+            termination = 30.
             
             # new reward funcs to be formulated
             
-            height_off_ground = 3.
+            height_off_ground = 0.
+            xy_proximity = 1.
+            # tracking_yaw = 10.
+            # tracking_goal_vel = - 2.
             
             # zeros ones rewards are disabled
             lin_vel_z = 0.0 
             torques = -0.0
             feet_air_time =  .0
-            termination = -0.0
+            
             feet_stumble = -0.0 
             base_height = -0. 
             stand_still = -0.
@@ -93,7 +97,7 @@ class Go1FlatCfg( Go1RoughCfg ):
     class commands(LeggedRobotCfg.commands ):
         curriculum = False
         max_curriculum = 1.
-        num_commands = 6 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error) # added jump_satrt_z_vel
+        num_commands = 8 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error) # added jump_satrt_z_vel
         resampling_time = 4. # time before command are changed[s]
         heading_command = False # if true: compute ang vel command from heading error
         class ranges:
@@ -102,10 +106,11 @@ class Go1FlatCfg( Go1RoughCfg ):
             ang_vel_yaw = [-1, 1]    # min max [rad/s]
             heading = [-3.14, 3.14]
             jump_start_z_vel = [0.5, 1.2] # [m/s]
-
-            jump_start_z = [0.25, .8] # [m]
-
-    
+            # just height
+            jump_start_z = [.6, 0.9] # [m]
+            # also adding relative x,y position w.r.t init dog position 
+            jump_start_x = [0.5,1.] # relative coordinate of the static point
+            jump_start_y = [-0.4, 0.4] # relative cooridnate fo the static point
 
 
 class Go1FlatCfgPPO( Go1RoughCfgPPO ):

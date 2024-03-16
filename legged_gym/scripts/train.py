@@ -28,14 +28,14 @@
 #
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
-import numpy as np
+# import numpy as np
 import os
 from datetime import datetime
 
-import isaacgym
+# import isaacgym
 from legged_gym.envs import *
 from legged_gym.utils import get_args, task_registry
-import torch
+# import torch
 
 def train(args):
     env, env_cfg = task_registry.make_env(name=args.task, args=args)
@@ -44,5 +44,5 @@ def train(args):
 
 if __name__ == '__main__':
     args = get_args()
-    # args.task = 'go1'
+
     train(args)

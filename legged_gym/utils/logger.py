@@ -82,13 +82,20 @@ class Logger:
         if log["dof_vel_target"]: a.plot(time, log["dof_vel_target"], label='target')
         a.set(xlabel='time [s]', ylabel='Velocity [rad/s]', title='Joint Velocity')
         a.legend()
-        # plot base vel x
+        # # plot base vel x
+        # a = axs[0, 0]
+        # if log["base_vel_x"]: a.plot(time, log["base_vel_x"], label='measured')
+        # if log["command_x_vel"]: a.plot(time, log["command_x_vel"], label='commanded')
+        # a.set(xlabel='time [s]', ylabel='base lin vel [m/s]', title='Base velocity x')
+        # a.legend()
+
+        # plot base xy 
         a = axs[0, 0]
-        if log["base_vel_x"]: a.plot(time, log["base_vel_x"], label='measured')
-        if log["command_x_vel"]: a.plot(time, log["command_x_vel"], label='commanded')
-        a.set(xlabel='time [s]', ylabel='base lin vel [m/s]', title='Base velocity x')
+        if log["base_pos_x"]: a.scatter(log["base_pos_x"], log["base_pos_y"], label='measured',c = time ,cmap="plasma")
+        if log["command_x_pos"]: points = a.scatter(log["command_x_pos"], log["command_y_pos"], label='commanded', s = 10)
+        a.set(xlabel='position x [m]', ylabel='position y [m]', title='xy trajectory')
+        fig.colorbar(points)
         a.legend()
-        
         # # plot base vel y
         # a = axs[0, 1]
         # if log["base_vel_y"]: a.plot(time, log["base_vel_y"], label='measured')
@@ -102,6 +109,7 @@ class Logger:
         if log["command_z_pos"]: a.plot(time, log["command_z_pos"], label='commanded')
         a.set(xlabel='time [s]', ylabel='base z [m]', title='Base z position')
         a.legend()
+
 
 
         # plot base vel yaw
