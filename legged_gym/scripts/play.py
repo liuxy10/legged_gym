@@ -86,34 +86,59 @@ def play(args):
         if MOVE_CAMERA:
             camera_position += camera_vel * env.dt
             env.set_camera(camera_position, camera_position + camera_direction)
-
+        
+        # print("!!!!!!!!!!!!!!!!", env.yaw[robot_index])
         if i < stop_state_log:
-            logger.log_states(
-                {
-                    'dof_pos_target': actions[robot_index, joint_index].item() * env.cfg.control.action_scale,
-                    'dof_pos_z': env.dof_pos[robot_index, joint_index].item(),
-                    'dof_vel': env.dof_vel[robot_index, joint_index].item(),
-                    'base_pos_z': env.root_states[robot_index,2].item(),
-                    'base_pos_x': env.root_states[robot_index,0].item(),
-                    'base_pos_y': env.root_states[robot_index,1].item(),
-                    
-                    'dof_torque': env.torques[robot_index, joint_index].item(),
-                    'command_x_vel': env.commands[robot_index, 0].item(),
-                    'command_y_vel': env.commands[robot_index, 1].item(),
-                    'command_z_vel': env.commands[robot_index, 4].item(),
-                    'command_z_pos': env.commands[robot_index, 5].item(),
-                    'command_x_pos': env.commands[robot_index, 6].item(),
-                    'command_y_pos': env.commands[robot_index, 7].item(),
-                    'command_yaw': env.commands[robot_index, 2].item(),
-                    'base_vel_x': env.base_lin_vel[robot_index, 0].item(),
-                    'base_vel_y': env.base_lin_vel[robot_index, 1].item(),
-                    'base_vel_z': env.base_lin_vel[robot_index, 2].item(),
-                    'base_vel_yaw': env.base_ang_vel[robot_index, 2].item(),
-                    'base_vel_roll': env.base_ang_vel[robot_index, 0].item(),
-                    'contact_forces_z': env.contact_forces[robot_index, env.feet_indices, 2].cpu().numpy()
-                    
-                }
-            )
+            if env_cfg.train_jump:
+                logger.log_states(
+                    {
+                        'dof_pos_target': actions[robot_index, joint_index].item() * env.cfg.control.action_scale,
+                        'dof_pos_z': env.dof_pos[robot_index, joint_index].item(),
+                        'dof_vel': env.dof_vel[robot_index, joint_index].item(),
+                        'base_pos_z': env.root_states[robot_index,2].item(),
+                        'base_pos_x': env.root_states[robot_index,0].item(),
+                        'base_pos_y': env.root_states[robot_index,1].item(),
+                        'base_yaw': env.yaw[robot_index].item(),
+                        'dof_torque': env.torques[robot_index, joint_index].item(),
+                        'command_x_vel': env.commands[robot_index, 0].item(),
+                        'command_y_vel': env.commands[robot_index, 1].item(),
+                        'command_z_vel': env.commands[robot_index, 4].item(),
+                        'command_z_pos': env.commands[robot_index, 5].item(),
+                        'command_x_pos': env.commands[robot_index, 6].item(),
+                        'command_y_pos': env.commands[robot_index, 7].item(),
+                        'command_yaw': env.commands[robot_index, 2].item(),
+                        'base_vel_x': env.base_lin_vel[robot_index, 0].item(),
+                        'base_vel_y': env.base_lin_vel[robot_index, 1].item(),
+                        'base_vel_z': env.base_lin_vel[robot_index, 2].item(),
+                        'base_vel_yaw': env.base_ang_vel[robot_index, 2].item(),
+                        'base_vel_roll': env.base_ang_vel[robot_index, 0].item(),
+                        'contact_forces_z': env.contact_forces[robot_index, env.feet_indices, 2].cpu().numpy()
+                        
+                    }
+                )
+            else:
+                    logger.log_states(
+                    {
+                        'dof_pos_target': actions[robot_index, joint_index].item() * env.cfg.control.action_scale,
+                        'dof_pos_z': env.dof_pos[robot_index, joint_index].item(),
+                        'dof_vel': env.dof_vel[robot_index, joint_index].item(),
+                        'base_pos_z': env.root_states[robot_index,2].item(),
+                        'base_pos_x': env.root_states[robot_index,0].item(),
+                        'base_pos_y': env.root_states[robot_index,1].item(),
+                        
+                        'dof_torque': env.torques[robot_index, joint_index].item(),
+                        'command_x': env.commands[robot_index, 0].item(),
+                        'command_y': env.commands[robot_index, 1].item(),
+                        'command_yaw': env.commands[robot_index, 2].item(),
+                        'base_vel_x': env.base_lin_vel[robot_index, 0].item(),
+                        'base_vel_y': env.base_lin_vel[robot_index, 1].item(),
+                        'base_vel_z': env.base_lin_vel[robot_index, 2].item(),
+                        'base_vel_yaw': env.base_ang_vel[robot_index, 2].item(),
+                        'base_vel_roll': env.base_ang_vel[robot_index, 0].item(),
+                        'contact_forces_z': env.contact_forces[robot_index, env.feet_indices, 2].cpu().numpy()
+                        
+                    }
+                )
         elif i==stop_state_log:
             logger.plot_states()
         if  0 < i < stop_rew_log:

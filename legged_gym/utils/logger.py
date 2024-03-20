@@ -62,6 +62,9 @@ class Logger:
         self.plot_process = Process(target=self._plot)
         self.plot_process.start()
 
+
+        
+
     def _plot(self): 
         nb_rows = 3
         nb_cols = 3
@@ -92,23 +95,27 @@ class Logger:
         # plot base xy 
         a = axs[0, 0]
         if log["base_pos_x"]: a.scatter(log["base_pos_x"], log["base_pos_y"], label='measured',c = time ,cmap="plasma")
-        if log["command_x_pos"]: points = a.scatter(log["command_x_pos"], log["command_y_pos"], label='commanded', s = 10)
+        if log["base_yaw"]: 
+            draw_arrows(a, log["base_yaw"],log["base_pos_x"], log["base_pos_y"], density=30)
+        if log["command_x_pos"]: 
+            points = a.scatter(log["command_x_pos"], log["command_y_pos"], label='commanded', s = 10)
+
         a.set(xlabel='position x [m]', ylabel='position y [m]', title='xy trajectory')
-        fig.colorbar(points)
+        if log["command_x_pos"]: fig.colorbar(points)
         a.legend()
         # # plot base vel y
-        # a = axs[0, 1]
-        # if log["base_vel_y"]: a.plot(time, log["base_vel_y"], label='measured')
-        # if log["command_y"]: a.plot(time, log["command_y"], label='commanded')
-        # a.set(xlabel='time [s]', ylabel='base lin vel [m/s]', title='Base velocity y')
-        # a.legend()
+        a = axs[0, 1]
+        if log["base_vel_y"]: a.plot(time, log["base_vel_y"], label='measured')
+        if log["command_y"]: a.plot(time, log["command_y"], label='commanded')
+        a.set(xlabel='time [s]', ylabel='base lin vel [m/s]', title='Base velocity y')
+        a.legend()
         
         # plot base z
-        a = axs[0, 1]
-        if log["base_pos_z"]: a.scatter(time, log["base_pos_z"], label='measured')
-        if log["command_z_pos"]: a.plot(time, log["command_z_pos"], label='commanded')
-        a.set(xlabel='time [s]', ylabel='base z [m]', title='Base z position')
-        a.legend()
+        # a = axs[0, 1]
+        # if log["base_pos_z"]: a.scatter(time, log["base_pos_z"], label='measured')
+        # if log["command_z_pos"]: a.plot(time, log["command_z_pos"], label='commanded')
+        # a.set(xlabel='time [s]', ylabel='base z [m]', title='Base z position')
+        # a.legend()
 
 
 
@@ -156,3 +163,40 @@ class Logger:
     def __del__(self):
         if self.plot_process is not None:
             self.plot_process.kill()
+
+
+def draw_arrows(ax, headings, xs, ys, density=30):
+    """
+    Plot trajectories with headings as arrows.
+
+    Parameters:
+    ax (matplotlib.axes.Axes): The axes to draw on.
+    headings (list): List of headings in degrees.
+    xs (list or numpy.ndarray): List or array of x-coordinates for trajectories.
+    ys (list or numpy.ndarray): List or array of y-coordinates for trajectories.
+    density (int): Density of arrows to plot along trajectories.
+
+    Returns:
+    None
+    """
+
+
+    # Plot trajectories
+    ax.plot(xs, ys)
+
+    # Plot arrows along trajectories
+    # for x, y, heading_rad in zip(xs, ys, headings_rad):
+    for i in range(len(xs)):
+        if i % density == 0:
+        # # Calculate arrow points
+        # arrow_x = np.linspace(x, x + np.cos(heading_rad), density)
+        # arrow_y = np.linspace(y, y + np.sin(heading_rad), density)
+
+        # Plot arrows
+            ax.arrow(xs[i], ys[i], np.cos(headings[i]), np.sin(headings[i]),
+                    head_width=0.01, head_length=0.001, fc='red', ec='red')
+
+    # ax.set_aspect('equal', adjustable='box')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_title('Trajectories with Headings')

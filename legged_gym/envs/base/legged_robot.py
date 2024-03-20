@@ -38,6 +38,7 @@ from isaacgym.torch_utils import *
 from isaacgym import gymtorch, gymapi, gymutil
 
 import torch
+torch.set_printoptions(precision=4)
 from torch import Tensor
 from typing import Tuple, Dict
 
@@ -827,7 +828,7 @@ class LeggedRobot(BaseTask):
         sphere_geom = gymutil.WireframeSphereGeometry(0.1, 32, 32, None, color=(1, 0, 0))
         goal = self.get_goal_position()
         # print("_draw_goals: goal = ",goal.item())
-
+        yaw = self.yaw.cpu().numpy()
         for j in range(self.num_envs):
             pose = gymapi.Transform(gymapi.Vec3(goal[j,0], goal[j,1], goal[j,2]), r=None)
 
@@ -838,18 +839,25 @@ class LeggedRobot(BaseTask):
 
         
             
-            sphere_geom_arrow = gymutil.WireframeSphereGeometry(0.02, 16, 16, None, color=(1, 0.35, 0.25))
+            sphere_geom_arrow_goal = gymutil.WireframeSphereGeometry(0.02, 16, 16, None, color=(1, 0.35, 0.25))
+            sphere_geom_arrow_heading = gymutil.WireframeSphereGeometry(0.02, 16, 16, None, color=(0.35, 1, 0.25))
+
             pose_robot = self.root_states[j, :3].cpu().numpy()
-            for i in range(20):
+            for i in range(8):
                 target_pos_rel = self.get_target_pos_rel()
                 norm = torch.norm(target_pos_rel, dim=-1, keepdim=True)
                 target_vec_norm = target_pos_rel / (norm + 1e-5)
-                pose_arrow = pose_robot[:3] + 0.05*i * target_pos_rel[j, :3].cpu().numpy()
-                if i ==20: 
-                    print("[debug] ")
+                pose_arrow = pose_robot[:3] + 0.125*i * target_pos_rel[j, :3].cpu().numpy()
                 pose = gymapi.Transform(gymapi.Vec3(pose_arrow[0], pose_arrow[1], pose_arrow[2]), r=None)
-                gymutil.draw_lines(sphere_geom_arrow, self.gym, self.viewer, self.envs[j], pose)
+                gymutil.draw_lines(sphere_geom_arrow_goal, self.gym, self.viewer, self.envs[j], pose)
                 
+                
+                pose_arrow = np.copy(pose_robot[:3])
+                # print("[yaw dim]", self.yaw.shape, )
+                pose_arrow[0] += 0.125*i * np.cos(yaw[j])
+                pose_arrow[1] += 0.125*i * np.sin(yaw[j]) 
+                pose = gymapi.Transform(gymapi.Vec3(pose_arrow[0], pose_arrow[1], pose_arrow[2]), r=None)
+                gymutil.draw_lines(sphere_geom_arrow_heading, self.gym, self.viewer, self.envs[j],pose)
                
     
 
@@ -907,6 +915,13 @@ class LeggedRobot(BaseTask):
 
         return heights.view(self.num_envs, -1) * self.terrain.cfg.vertical_scale
     
+    def none_contact(self):
+        no_contact = self.contact_forces[:, self.feet_indices, 2] < 1.
+        # print("no_contact sum",torch.sum(no_contact, dim = 0))
+        none_contact = torch.logical_and(no_contact[:,3],torch.logical_and(no_contact[:,2],torch.logical_and(no_contact[:,1],no_contact[:,0])))
+        return none_contact
+        
+
 
     # ------------- jump reward function ---------------
 
@@ -920,13 +935,7 @@ class LeggedRobot(BaseTask):
             # print(scale[0])
             scale = torch.clip(scale, 0,1)
 
-            # print("[debug]  vel_z, cmd", self.base_lin_vel[:4, 2], self.commands[:4, 4])
-            # print(scale, scale * z_vel_target_sq)
-             # if scale[0]>0: 
-            #     print ("1")
-            # else:
-            #     print("0") 
-            # print(scale[0], self.dt)  
+ 
             return scale * z_vel_target_sq
             
         else:
@@ -937,15 +946,12 @@ class LeggedRobot(BaseTask):
     def _reward_height_off_ground(self):
         # Reward height off ground
         # Need to filter the contacts because the contact reporting of PhysX is unreliable on meshes
-        no_contact = self.contact_forces[:, self.feet_indices, 2] < 1.
-        # print("no_contact sum",torch.sum(no_contact, dim = 0))
-        none_contact = torch.logical_and(no_contact[:,3],torch.logical_and(no_contact[:,2],torch.logical_and(no_contact[:,1],no_contact[:,0])))
         
-        
+        none_contact = self.none_contact()
         print("none contact ratio =",torch.sum(none_contact)/4096)
-        height_sqr= torch.square(self.commands[:,5] - self.root_states[:,2])
+        height_sqr= torch.square(self.root_states[:,2])
         # print("command [:,5] = ",torch.mean(self.commands[:,5]) )
-        return none_contact * (-height_sqr + torch.square(self.commands[:,5] - self.cfg.rewards.base_height_target) + 4.)
+        return none_contact * torch.clip(height_sqr, torch.ones_like(height_sqr) * np.square(self.cfg.rewards.base_height_target), self.commands[:,5]) + 4. 
     
     def _reward_xy_proximity(self):
         # Reward proximity to goal in xy plane
@@ -954,6 +960,10 @@ class LeggedRobot(BaseTask):
         rew = -torch.norm(self.get_target_pos_rel()[:,:2], dim = 1) + 1.5
         # print("xy_proximity = ", rew)
         return rew
+    
+    def _reward_ang_vel_z(self):
+        # reward yaw vel diminishing when approaching jumping
+        return torch.square(self.base_ang_vel[:, 2])
 
 
     
@@ -962,25 +972,37 @@ class LeggedRobot(BaseTask):
         norm = torch.norm(target_pos_rel, dim=-1, keepdim=True)
         target_vec_norm = target_pos_rel / (norm + 1e-5)
         target_yaw = torch.atan2(target_vec_norm[:, 1], target_vec_norm[:, 0])
-        diff = torch.minimum(torch.abs(target_yaw  - self.yaw), torch.abs( torch.abs(target_yaw - self.yaw) - 2*torch.pi))
+        # none_contact = self.none_contact()
+        # diff = torch.minimum(torch.abs(target_yaw  - self.yaw), torch.abs( torch.abs(target_yaw - self.yaw) - 2*torch.pi))
+        diff = target_yaw  - self.yaw
         # print(diff.shape)
-        print("mean target distance, mean yaw diff = ", torch.mean(torch.norm(target_pos_rel, dim = 1)).item(), torch.mean(diff).item())
-        # print("target yaw, heading, diff", target_yaw[0].item(), self.yaw[0].item(), diff[0].item())
         
-        rew = torch.exp(-diff)
-
-        return rew
+        # print("target yaw, heading, diff", target_yaw[0].item(), self.yaw[0].item(), diff[0].item())
+        K = 1.0
+        ang_vel_error = torch.square(diff*K - self.base_ang_vel[:, 2])
+        print("mean ang diff = ", torch.mean(diff),
+              "ang_vel_mean", torch.mean(self.base_ang_vel[:, 2]))
+        print("[tracking yaw reward]", torch.exp(-ang_vel_error/self.cfg.rewards.tracking_sigma))
+        return torch.exp(-ang_vel_error/self.cfg.rewards.tracking_sigma)
     
     def _reward_tracking_goal_vel(self):
         # we only want this function to track xy vel only for now
         target_pos_rel = self.get_target_pos_rel() 
         target_vec_norm = target_pos_rel[:,:2] / (torch.norm(target_pos_rel[:,:2], dim=-1, keepdim=True) + 1e-5)
-        cur_vel = self.root_states[:, 7:9]
-        print("mean projected vel = ", torch.mean(torch.sum(target_vec_norm * cur_vel, dim=-1)).item())
-        # rew = torch.clip(torch.sum(target_vec_norm  * cur_vel, dim=-1),0, 0.5) 
-        rew = torch.clip(1 - torch.norm(cur_vel, dim=-1), 0, 1) 
-
-        return rew
+        print("mean vel = ", torch.mean(torch.norm(self.base_lin_vel[:, :2], dim=-1)), 
+              "mean projected vel, var = ", torch.mean(torch.sum(target_vec_norm * self.base_lin_vel[:, :2], dim=-1)),
+                                            torch.var(torch.sum(target_vec_norm * self.base_lin_vel[:, :2], dim=-1)))
+        # print("mean target distance", torch.mean(torch.norm(target_pos_rel, dim = 1)).item())
+        
+        # we probably want to only adjust goal vel when there are contacts on the ground
+        # none_contact = self.none_contact()
+        K = 1.
+        # rew = ~none_contact * torch.clip(torch.sum(target_vec_norm  * self.base_lin_vel[:, :2], dim=-1), - 0.0, 0.5) *  torch.exp(-torch.norm(target_pos_rel[:,:2], dim=-1) + 0.5)
+        lin_vel_error = torch.sum(torch.square(target_pos_rel[:,:2]*K - self.base_lin_vel[:, :2]), dim=1)
+        print("[goal vel rew]", torch.exp(-lin_vel_error/self.cfg.rewards.tracking_sigma))
+        # rew = torch.clip(torch.norm(cur_vel, dim=-1), 0, 0.5) 
+ 
+        return torch.exp(-lin_vel_error/self.cfg.rewards.tracking_sigma)
         
     
     def _reward_termination(self): # TODO: split termination reward into different cases
@@ -991,10 +1013,13 @@ class LeggedRobot(BaseTask):
         
         collide = torch.any(torch.norm(self.contact_forces[:, self.termination_contact_indices, :], dim=-1) > 1., dim=1)
         print("goals reached ratio/collide  =",torch.sum(goal_reached).item(), torch.sum(collide).item()) 
-        return goal_reached.float() - collide.float()
+        return goal_reached.float() - collide.float()*1.5
      
 
-    
+    #how about penalize the yaw difference after jumping up?
+    def _reward_midair_yaw_diff (self):
+
+        pass
     
     #------------ reward functions----------------
 

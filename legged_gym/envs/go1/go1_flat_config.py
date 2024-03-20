@@ -63,36 +63,42 @@ class Go1FlatCfg( Go1RoughCfg ):
         soft_dof_pos_limit = 0.9
         base_height_target = 0.25
       
-
+        only_positive_rewards = False
         class scales:
-            ang_vel_xy = -0.05#-0.05
+            ang_vel_xy = -0.3 #-0.05
             
             dof_acc = -2.5e-7
-            action_rate = -0.01
+            action_rate = -0.001
             collision = -0.5
-            orientation = -1.
-            termination = 30.
+            orientation = -2.
+            termination = 50.
             
             # new reward funcs to be formulated
             
             height_off_ground = 0.
-            xy_proximity = 1.
-            # tracking_yaw = 10.
-            # tracking_goal_vel = - 2.
+            xy_proximity = 0.
+            tracking_yaw = 1.5
+            tracking_goal_vel = 1.5
+            # ang_vel_z = -2.5e-5 #-0.05
             
             # zeros ones rewards are disabled
             lin_vel_z = 0.0 
             torques = -0.0
-            feet_air_time =  .0
+            feet_air_time =  .05
             
             feet_stumble = -0.0 
-            base_height = -0. 
+            # base_height = -0.001 
             stand_still = -0.
             
             dof_vel = -0.
             
             tracking_lin_vel = 0.0
             tracking_ang_vel = 0.0
+
+            # tracking_lin_vel = 1.0
+            # tracking_ang_vel = 0.5
+            # lin_vel_z = -2.0
+            # ang_vel_xy = -0.05
 
     class commands(LeggedRobotCfg.commands ):
         curriculum = False
