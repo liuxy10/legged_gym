@@ -86,36 +86,40 @@ class Logger:
         a.set(xlabel='time [s]', ylabel='Velocity [rad/s]', title='Joint Velocity')
         a.legend()
         # # plot base vel x
-        a = axs[0, 0]
-        if log["base_vel_x"]: a.plot(time, log["base_vel_x"], label='measured')
-        if log["command_x_vel"]: a.plot(time, log["command_x_vel"], label='commanded')
-        a.set(xlabel='time [s]', ylabel='base lin vel [m/s]', title='Base velocity x')
-        a.legend()
+        # a = axs[0, 0]
+        # if log["base_vel_x"]: a.plot(time, log["base_vel_x"], label='measured')
+        # if log["command_x_vel"]: a.plot(time, log["command_x_vel"], label='commanded')
+        # a.set(xlabel='time [s]', ylabel='base lin vel [m/s]', title='Base velocity x')
+        # a.legend()
 
         # plot base xy 
-        # a = axs[0, 0]
-        # if log["base_pos_x"]: a.scatter(log["base_pos_x"], log["base_pos_y"], label='measured',c = time ,cmap="plasma")
-        # if log["base_yaw"]: 
-        #     draw_arrows(a, log["base_yaw"],log["base_pos_x"], log["base_pos_y"], density=30)
-        # if log["command_x_pos"]: 
-        #     points = a.scatter(log["command_x_pos"], log["command_y_pos"], label='commanded', s = 10)
+        a = axs[0, 0]
+        if log["base_pos_x"]: a.scatter(log["base_pos_x"], log["base_pos_y"], label='measured',c = time ,cmap="plasma", s = 5)
+        if log["base_yaw"]: 
+            draw_arrows(a, log["base_yaw"],log["base_pos_x"], log["base_pos_y"], density=30)
+        if log["command_x_pos"]: 
+            points = a.scatter(log["command_x_pos"][0], log["command_y_pos"][0], label='commanded', s = 10)
 
+            draw_circle(a, [log["command_x_pos"][0],  log["command_y_pos"][0]], radius = .15)
+            
+        if log["origin_x"]:
+            draw_ellipse(a, [log["origin_x"][0],log["origin_y"][0]], [log["command_x_pos"][0], log["command_y_pos"][0]], 0.8)
         # a.set(xlabel='position x [m]', ylabel='position y [m]', title='xy trajectory')
-        # if log["command_x_pos"]: fig.colorbar(points)
+        if log["command_x_pos"]: fig.colorbar(points)
         a.legend()
         # # plot base vel y
-        a = axs[0, 1]
-        if log["base_vel_y"]: a.plot(time, log["base_vel_y"], label='measured')
-        if log["command_y_vel"]: a.plot(time, log["command_y_vel"], label='commanded')
-        a.set(xlabel='time [s]', ylabel='base lin vel [m/s]', title='Base velocity y')
-        a.legend()
+        # a = axs[0, 1]
+        # if log["base_vel_y"]: a.plot(time, log["base_vel_y"], label='measured')
+        # if log["command_y_vel"]: a.plot(time, log["command_y_vel"], label='commanded')
+        # a.set(xlabel='time [s]', ylabel='base lin vel [m/s]', title='Base velocity y')
+        # a.legend()
         
         # plot base z
-        # a = axs[0, 1]
-        # if log["base_pos_z"]: a.scatter(time, log["base_pos_z"], label='measured')
-        # if log["command_z_pos"]: a.plot(time, log["command_z_pos"], label='commanded')
-        # a.set(xlabel='time [s]', ylabel='base z [m]', title='Base z position')
-        # a.legend()
+        a = axs[0, 1]
+        if log["base_pos_z"]: a.scatter(time, log["base_pos_z"], label='measured')
+        if log["command_z_pos"]: a.plot(time, log["command_z_pos"], label='commanded')
+        a.set(xlabel='time [s]', ylabel='base z [m]', title='Base z position')
+        a.legend()
 
 
 
@@ -200,3 +204,51 @@ def draw_arrows(ax, headings, xs, ys, density=30):
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_title('Trajectories with Headings')
+
+
+    
+def draw_ellipse(ax, focus1, focus2, diff = 0.8):
+    """
+    Draw an ellipse based on the positions of the foci and the length of the major axis.
+
+    Parameters:
+    focus1 (tuple): Position of the first focus as a tuple (x, y).
+    focus2 (tuple): Position of the second focus as a tuple (x, y).
+    diff (float): |a-c|.
+
+    Returns:
+    None
+    """
+    
+    distance_foci = np.linalg.norm([focus1[0] - focus2[0], focus1[1] - focus2[1]])
+    major_axis_length = distance_foci + diff*2
+    
+    # Calculate the center of the ellipse
+    center = ((focus1[0] + focus2[0]) / 2, (focus1[1] + focus2[1]) / 2)
+
+    # Calculate the semi-major axis length
+    semi_major_axis = major_axis_length / 2
+
+    # Calculate the semi-minor axis length
+    semi_minor_axis = np.sqrt((major_axis_length / 2) ** 2 - (distance_foci / 2) ** 2)
+
+    # Create an array of angles from 0 to 2*pi
+    theta = np.linspace(0, 2 * np.pi, 100)
+
+    # Parametric equations for an ellipse
+    x = center[0] + semi_major_axis * np.cos(theta)
+    y = center[1] + semi_minor_axis * np.sin(theta)
+
+    # Plot the ellipse
+    ax.plot(x, y)
+
+
+def draw_circle(ax, center, radius = .15):
+    # Create an array of angles from 0 to 2*pi
+    theta = np.linspace(0, 2 * np.pi, 100)
+
+    # Parametric equations for an ellipse
+    x = center[0] + radius * np.cos(theta)
+    y = center[1] + radius * np.sin(theta)
+
+    ax.plot(x,y)

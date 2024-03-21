@@ -176,7 +176,9 @@ class LeggedRobot(BaseTask):
         # goal could be updated in #TODO: how to define goal
         if self.cfg.train_jump:
             self.goal_reached = self.check_goal_reached()
+            self.out_of_region = self.check_out_of_region()
             self.reset_buf |= self.goal_reached 
+            self.reset_buf |= self.out_of_region
             # print("[check_termination]# goal_reached = ", torch.sum(self.goal_reached)) 
             # print("[check_termination]# reset envs = ",torch.sum(self.reset_buf)) 
     
@@ -193,12 +195,22 @@ class LeggedRobot(BaseTask):
         return self.get_goal_position() - self.root_states[:, :3]
 
 
-    def check_goal_reached(self):
+    def check_goal_reached(self, dist_thres = 0.15, xy_only = True):
         """ check if the (static goal) is within the ball
         """
-        
-        return torch.norm(self.root_states[:,:2] - self.get_goal_position()[:,:2], dim = 1) < 0.15 # TODO: curriculum this threshold     
+        if xy_only:
+            return torch.norm(self.get_target_pos_rel()[:,:2], dim = 1) < dist_thres # TODO: curriculum this threshold     
+        else:
+            return torch.norm(self.get_target_pos_rel(), dim = 1) < dist_thres # TODO: curriculum this threshold   
 
+
+    def check_out_of_region(self):
+        """ check if the robot base xy is within the ellipse (init pos, target pos as ecllipse focus, )
+        """
+        c = torch.norm(self.commands[:,6:8], dim = 1)/2
+        a = c + 0.8
+        return (torch.norm(self.get_target_pos_rel(), dim = 1) 
+               + torch.norm(self.root_states[:,:2] - self.env_origins[:,:2], dim = 1)) > 2 * a
 
     def reset_idx(self, env_ids):
         """ Reset some environments.
@@ -929,7 +941,7 @@ class LeggedRobot(BaseTask):
         # Penalize z axis base linear velocity
         # print(self.commands[:, 4])
         if self.cfg.train_jump:
-            z_vel_pos_sq = torch.square(torch.clip(self.base_lin_vel[:, 2], 0,  None))
+            z_vel_pos_sq = torch.square(torch.clip(self.root_states[:, 9], 0,  None))
             z_vel_target_sq = torch.square(self.commands[:, 4])
             scale = z_vel_pos_sq/z_vel_target_sq
             # print(scale[0])
@@ -939,7 +951,7 @@ class LeggedRobot(BaseTask):
             return scale * z_vel_target_sq
             
         else:
-            return torch.square(self.base_lin_vel[:, 2])
+            return torch.square(self.root_states[:, 9])
         
 
         
@@ -960,11 +972,6 @@ class LeggedRobot(BaseTask):
         rew = -torch.norm(self.get_target_pos_rel()[:,:2], dim = 1) + 1.5
         # print("xy_proximity = ", rew)
         return rew
-    
-    def _reward_ang_vel_z(self):
-        # reward yaw vel diminishing when approaching jumping
-        return torch.square(self.base_ang_vel[:, 2])
-
 
     
     def _reward_tracking_yaw(self):
@@ -979,27 +986,26 @@ class LeggedRobot(BaseTask):
         
         # print("target yaw, heading, diff", target_yaw[0].item(), self.yaw[0].item(), diff[0].item())
         K = 1.0
-        ang_vel_error = torch.square(diff*K - self.base_ang_vel[:, 2])
-        print("mean ang diff = ", torch.mean(diff),
-              "ang_vel_mean", torch.mean(self.base_ang_vel[:, 2]))
-        print("[tracking yaw reward]", torch.exp(-ang_vel_error/self.cfg.rewards.tracking_sigma))
+        ang_vel_error = torch.square(diff*K - self.root_states[:, 12])
+        # print("mean ang diff = ", torch.mean(diff),
+        #       "ang_vel_mean", torch.mean(self.base_ang_vel[:, 2]))
+        # print("[tracking yaw reward]", torch.exp(-ang_vel_error/self.cfg.rewards.tracking_sigma))
         return torch.exp(-ang_vel_error/self.cfg.rewards.tracking_sigma)
     
     def _reward_tracking_goal_vel(self):
         # we only want this function to track xy vel only for now
         target_pos_rel = self.get_target_pos_rel() 
         target_vec_norm = target_pos_rel[:,:2] / (torch.norm(target_pos_rel[:,:2], dim=-1, keepdim=True) + 1e-5)
-        print("mean vel = ", torch.mean(torch.norm(self.base_lin_vel[:, :2], dim=-1)), 
-              "mean projected vel, var = ", torch.mean(torch.sum(target_vec_norm * self.base_lin_vel[:, :2], dim=-1)),
-                                            torch.var(torch.sum(target_vec_norm * self.base_lin_vel[:, :2], dim=-1)))
+        print("mean vel = ", torch.mean(torch.norm(self.root_states[:, 7:9], dim=-1)), 
+              "mean projected vel, var = ", torch.mean(torch.sum(target_vec_norm * self.root_states[:, 7:9], dim=-1)),
+                                            torch.var(torch.sum(target_vec_norm * self.root_states[:, 7:9], dim=-1)))
         # print("mean target distance", torch.mean(torch.norm(target_pos_rel, dim = 1)).item())
         
         # we probably want to only adjust goal vel when there are contacts on the ground
         # none_contact = self.none_contact()
         K = 1.
-        # rew = ~none_contact * torch.clip(torch.sum(target_vec_norm  * self.base_lin_vel[:, :2], dim=-1), - 0.0, 0.5) *  torch.exp(-torch.norm(target_pos_rel[:,:2], dim=-1) + 0.5)
-        lin_vel_error = torch.sum(torch.square(target_pos_rel[:,:2]*K - self.base_lin_vel[:, :2]), dim=1)
-        print("[goal vel rew]", torch.exp(-lin_vel_error/self.cfg.rewards.tracking_sigma))
+        lin_vel_error = torch.sum(torch.square(torch.clip(target_pos_rel[:,:2]*K, -.8, .8) - self.root_states[:, 7:9]), dim=1)
+        # print("[goal vel rew]", torch.exp(-lin_vel_error/self.cfg.rewards.tracking_sigma))
         # rew = torch.clip(torch.norm(cur_vel, dim=-1), 0, 0.5) 
  
         return torch.exp(-lin_vel_error/self.cfg.rewards.tracking_sigma)
@@ -1009,11 +1015,12 @@ class LeggedRobot(BaseTask):
         # Terminal reward / penalty
         # we need to change this termination reward to have cases:
         # if termination is due to time out, no reward
-        goal_reached = self.check_goal_reached()
+        goal_reached = self.check_goal_reached(dist_thres = 0.20)
         
         collide = torch.any(torch.norm(self.contact_forces[:, self.termination_contact_indices, :], dim=-1) > 1., dim=1)
-        print("goals reached ratio/collide  =",torch.sum(goal_reached).item(), torch.sum(collide).item()) 
-        return goal_reached.float() - collide.float()*1.5
+        out_of_region = self.check_out_of_region()
+        print("goals reached ratio/out_of_region/collide  =",torch.sum(goal_reached).item(),torch.sum(out_of_region).item(), torch.sum(collide).item()) 
+        return goal_reached.float() - collide.float()*1.5 - out_of_region * 0.5
      
 
     #how about penalize the yaw difference after jumping up?

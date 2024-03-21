@@ -71,14 +71,14 @@ class Go1FlatCfg( Go1RoughCfg ):
             action_rate = -0.001
             collision = -0.5
             orientation = -2.
-            # termination = 50.
+            termination = 30.
             
             # new reward funcs to be formulated
             
-            height_off_ground = 0.
+            height_off_ground = 0.8
             xy_proximity = 0.
-            # tracking_yaw = 1.5
-            # tracking_goal_vel = 1.5
+            tracking_yaw = .5
+            tracking_goal_vel = 1.0
             # ang_vel_z = -2.5e-5 #-0.05
             
             # zeros ones rewards are disabled
@@ -88,15 +88,15 @@ class Go1FlatCfg( Go1RoughCfg ):
             
             feet_stumble = -0.0 
             # base_height = -0.001 
-            stand_still = -0.
+            stand_still = -0.4
             
             dof_vel = -0.
             
             tracking_lin_vel = 0.0
             tracking_ang_vel = 0.0
 
-            tracking_lin_vel = 1.0
-            tracking_ang_vel = 0.5
+            # tracking_lin_vel = 1.0
+            # tracking_ang_vel = 0.5
             # lin_vel_z = -2.0
             ang_vel_xy = -0.05
             feet_air_time =  .05
@@ -116,8 +116,8 @@ class Go1FlatCfg( Go1RoughCfg ):
             # just height
             jump_start_z = [.6, 0.9] # [m]
             # also adding relative x,y position w.r.t init dog position 
-            jump_start_x = [0.5,1.] # relative coordinate of the static point
-            jump_start_y = [-0.4, 0.4] # relative cooridnate fo the static point
+            jump_start_x = [1., 1.5] # relative coordinate of the static point
+            jump_start_y = [-0.0, 0.0] # relative cooridnate fo the static point
 
 
 class Go1FlatCfgPPO( Go1RoughCfgPPO ):
