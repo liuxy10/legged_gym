@@ -65,20 +65,20 @@ class Go1FlatCfg( Go1RoughCfg ):
       
         only_positive_rewards = False
         class scales:
-            ang_vel_xy = -0.3 #-0.05
+            ang_vel_xy = -0.05 #-0.05
             
             dof_acc = -2.5e-7
             action_rate = -0.001
             collision = -0.5
             orientation = -2.
-            termination = 30.
+            termination = 20.
             
             # new reward funcs to be formulated
             
-            height_off_ground = 0.8
+            height_off_ground = 0.
             xy_proximity = 0.
-            tracking_yaw = .5
-            tracking_goal_vel = 1.0
+            tracking_yaw = 1.5 # sensitive params
+            tracking_goal_vel = 1.5 # sensitive params
             # ang_vel_z = -2.5e-5 #-0.05
             
             # zeros ones rewards are disabled
@@ -88,7 +88,7 @@ class Go1FlatCfg( Go1RoughCfg ):
             
             feet_stumble = -0.0 
             # base_height = -0.001 
-            stand_still = -0.4
+            stand_still = -0.
             
             dof_vel = -0.
             
@@ -98,8 +98,25 @@ class Go1FlatCfg( Go1RoughCfg ):
             # tracking_lin_vel = 1.0
             # tracking_ang_vel = 0.5
             # lin_vel_z = -2.0
-            ang_vel_xy = -0.05
+            ang_vel_xy = -0.0 # 0.05
             feet_air_time =  .05
+
+
+            # how about overwriting using extreme-parkolur parameters:
+            tracking_goal_vel = 1.5
+            tracking_yaw = 1.5
+            # regularization rewards
+            # lin_vel_z = -1.0
+            # ang_vel_xy = -0.05
+            orientation = -1.
+            dof_acc = -2.5e-7
+            collision = -10.
+            action_rate = -0.1
+            # delta_torques = -1.0e-7
+            torques = -0.00001
+            # hip_pos = -0.5 # penalize deviation from default action 
+            # dof_error = -0.04
+           
 
     class commands(LeggedRobotCfg.commands ):
         curriculum = False
@@ -108,9 +125,9 @@ class Go1FlatCfg( Go1RoughCfg ):
         resampling_time = 4. # time before command are changed[s]
         heading_command = False # if true: compute ang vel command from heading error
         class ranges:
-            lin_vel_x = [-1.0, 1.0] # min max [m/s]
-            lin_vel_y = [-1.0, 1.0]   # min max [m/s]
-            ang_vel_yaw = [-1, 1]    # min max [rad/s]
+            lin_vel_x = [1., 1.]#[-1.0, 1.0] # min max [m/s]
+            lin_vel_y = [0., 0.]#[-1.0, 1.0]   # min max [m/s]
+            ang_vel_yaw = [0., 0.] #[-1, 1]    # min max [rad/s]
             heading = [-3.14, 3.14]
             jump_start_z_vel = [0.5, 1.2] # [m/s]
             # just height
