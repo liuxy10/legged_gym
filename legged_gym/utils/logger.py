@@ -100,7 +100,7 @@ class Logger:
         if log["command_x_pos"]: 
             points = a.scatter(log["command_x_pos"][0], log["command_y_pos"][0], label='commanded', s = 10)
 
-            draw_circle(a, [log["command_x_pos"][0],  log["command_y_pos"][0]], radius = .15)
+            draw_circle(a, [log["command_x_pos"][0],  log["command_y_pos"][0]], radius = .2) # need to correspond to threshold distance of the goal reach function
             
         if log["origin_x"]:
             draw_ellipse(a, [log["origin_x"][0],log["origin_y"][0]], [log["command_x_pos"][0], log["command_y_pos"][0]], 0.8)
@@ -243,12 +243,13 @@ def draw_ellipse(ax, focus1, focus2, diff = 0.8):
     ax.plot(x, y)
 
 
-def draw_circle(ax, center, radius = .15):
+def draw_circle(ax, center, radius = .25):
     # Create an array of angles from 0 to 2*pi
     theta = np.linspace(0, 2 * np.pi, 100)
 
     # Parametric equations for an ellipse
     x = center[0] + radius * np.cos(theta)
     y = center[1] + radius * np.sin(theta)
+    ax.set_aspect('equal', adjustable='box')
 
     ax.plot(x,y)

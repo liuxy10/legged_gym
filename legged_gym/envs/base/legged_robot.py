@@ -102,6 +102,9 @@ class LeggedRobot(BaseTask):
         self._prepare_reward_function()
         self.init_done = True
         self.draw_goals = cfg.draw_goals
+        
+        self._reset_stats()
+
 
     def step(self, actions):
         """ Apply actions, simulate, call self.post_physics_step()
@@ -163,18 +166,35 @@ class LeggedRobot(BaseTask):
         
         if self.draw_goals:
             self._draw_goals()
-        if self.viewer and self.enable_viewer_sync and self.debug_viz:
-            # self._draw_debug_vis()
-            print("herer!!!!!!!!")
+        # if self.viewer and self.enable_viewer_sync and self.debug_viz:
+        #     # self._draw_debug_vis()
+        #     print("herer!!!!!!!!")
     
     def _update_goals(self):
         self.target_pos_rel = self.get_target_pos_rel()
-        # self.next_target_pos_rel = self.next_goals[:, :2] - self.root_states[:, :2]
-
         norm = torch.norm(self.target_pos_rel, dim=-1, keepdim=True)
         target_vec_norm = self.target_pos_rel / (norm + 1e-5)
         self.target_yaw = torch.atan2(target_vec_norm[:, 1], target_vec_norm[:, 0])
 
+    def _update_stats(self):
+        self.num_goal_reached += torch.sum(self.goal_reached) 
+        self.num_collisions += torch.sum(torch.any(torch.norm(self.contact_forces[:, self.termination_contact_indices, :], dim=-1) > 1., dim=1))
+        self.num_time_out += torch.sum(self.time_out_buf)
+        self.num_out_of_region += torch.sum(self.out_of_region)
+
+    def _reset_stats(self):
+        self.num_goal_reached = 0
+        self.num_collisions = 0
+        self.num_time_out = 0
+        self.num_out_of_region = 0
+
+    def print_stats_sum_reset(self):
+        all = self.num_goal_reached + self.num_collisions + self.num_time_out+ self.num_out_of_region
+        print("#"*40)
+        print("ratio% : goal reached/collisions/out of region/time out = ", 
+              (self.num_goal_reached/all).item() * 100, (self.num_collisions/all).item() *100, (self.num_out_of_region/all).item() *100, (self.num_time_out/all).item() * 100)
+        print("#"*40)
+        self._reset_stats()
 
     def check_termination(self):
         """ Check if environments need to be reset
@@ -184,12 +204,12 @@ class LeggedRobot(BaseTask):
         self.reset_buf |= self.time_out_buf 
         # goal could be updated in #TODO: how to define goal
         if self.cfg.train_jump:
-            self.goal_reached = self.check_goal_reached()
+            self.goal_reached = self.check_goal_reached(dist_thres= .25, xy_only=False)
             self.out_of_region = self.check_out_of_region()
             self.reset_buf |= self.goal_reached 
             self.reset_buf |= self.out_of_region
-            # print("[check_termination]# goal_reached = ", torch.sum(self.goal_reached)) 
-            # print("[check_termination]# reset envs = ",torch.sum(self.reset_buf)) 
+            
+            self._update_stats()
     
     def get_goal_position(self):
         rel_xs, rel_ys, height = self.commands[:,6], self.commands[:,7], self.commands[:,5]
@@ -956,19 +976,30 @@ class LeggedRobot(BaseTask):
             scale = z_vel_pos_sq/z_vel_target_sq
             # print(scale[0])
             scale = torch.clip(scale, 0,1)
-
- 
             return scale * z_vel_target_sq
             
         else:
             return torch.square(self.root_states[:, 9])
         
 
+    
+    def _reward_tracking_goal_vel(self):
+        norm = torch.norm(self.target_pos_rel[:,:3], dim=-1, keepdim=True)
+        target_vec_norm = self.target_pos_rel[:,:3] / (norm + 1e-5)
+        cur_vel = self.root_states[:, 7:10]
+        rew = torch.minimum(torch.sum(target_vec_norm * cur_vel, dim=-1), self.commands[:, 0]) / (self.commands[:, 0] + 1e-5)
+        return rew
+
+    def _reward_tracking_yaw(self):
+        rew = torch.exp(-torch.abs(self.target_yaw - self.yaw))
+        return rew
+    
+        
+
         
     def _reward_height_off_ground(self):
         # Reward height off ground
         # Need to filter the contacts because the contact reporting of PhysX is unreliable on meshes
-        
         none_contact = self.none_contact()
         print("none contact ratio =",torch.sum(none_contact)/4096)
         height_sqr= torch.square(self.root_states[:,2])
@@ -984,65 +1015,46 @@ class LeggedRobot(BaseTask):
         return rew
 
     
-    def _reward_tracking_yaw(self):
-        target_pos_rel = self.get_goal_position() - self.root_states[:,:3]
-        norm = torch.norm(target_pos_rel, dim=-1, keepdim=True)
-        target_vec_norm = target_pos_rel / (norm + 1e-5)
-        target_yaw = torch.atan2(target_vec_norm[:, 1], target_vec_norm[:, 0])
-        diff = target_yaw  - self.yaw
-        K = 1.0
-        ang_vel_error = torch.square(diff*K - self.root_states[:, 12])
-        # print("mean ang diff = ", torch.mean(diff),
-        #       "ang_vel_mean", torch.mean(self.base_ang_vel[:, 2]))
-        # print("[tracking yaw reward]", torch.exp(-ang_vel_error/self.cfg.rewards.tracking_sigma))
-        return torch.exp(-ang_vel_error/self.cfg.rewards.tracking_sigma)
+    # def _reward_tracking_yaw(self):
+    #     target_pos_rel = self.get_goal_position() - self.root_states[:,:3]
+    #     norm = torch.norm(target_pos_rel, dim=-1, keepdim=True)
+    #     target_vec_norm = target_pos_rel / (norm + 1e-5)
+    #     target_yaw = torch.atan2(target_vec_norm[:, 1], target_vec_norm[:, 0])
+    #     diff = target_yaw  - self.yaw
+    #     K = 1.0
+    #     ang_vel_error = torch.square(diff*K - self.root_states[:, 12])
+    #     # print("mean ang diff = ", torch.mean(diff),
+    #     #       "ang_vel_mean", torch.mean(self.base_ang_vel[:, 2]))
+    #     # print("[tracking yaw reward]", torch.exp(-ang_vel_error/self.cfg.rewards.tracking_sigma))
+    #     return torch.exp(-ang_vel_error/self.cfg.rewards.tracking_sigma)
     
-    def _reward_tracking_goal_vel(self):
-        # we only want this function to track xy vel only for now
-        target_pos_rel = self.get_target_pos_rel() 
-        target_vec_norm = target_pos_rel[:,:2] / (torch.norm(target_pos_rel[:,:2], dim=-1, keepdim=True) + 1e-5)
+    # def _reward_tracking_goal_vel(self):
+    #     # we only want this function to track xy vel only for now
+    #     target_pos_rel = self.get_target_pos_rel() 
+    #     target_vec_norm = target_pos_rel[:,:2] / (torch.norm(target_pos_rel[:,:2], dim=-1, keepdim=True) + 1e-5)
         
-        print("mean vel = ", torch.mean(torch.norm(self.root_states[:, 7:9], dim=-1)), 
-              "mean projected vel, var = ", torch.mean(torch.sum(target_vec_norm * self.root_states[:, 7:9], dim=-1)),
-                                            torch.var(torch.sum(target_vec_norm * self.root_states[:, 7:9], dim=-1)))
+    #     print("mean vel = ", torch.mean(torch.norm(self.root_states[:, 7:9], dim=-1)), 
+    #           "mean projected vel, var = ", torch.mean(torch.sum(target_vec_norm * self.root_states[:, 7:9], dim=-1)),
+    #                                         torch.var(torch.sum(target_vec_norm * self.root_states[:, 7:9], dim=-1)))
 
-        K = 1.
-
-
-        lin_vel_error = torch.sum(torch.square(target_pos_rel[:,:2]*K - self.root_states[:, 7:9]), dim=1)
-        # print("[goal vel rew]", torch.exp(-lin_vel_error/self.cfg.rewards.tracking_sigma))
-        # rew = torch.clip(torch.norm(cur_vel, dim=-1), 0, 0.5) 
+    #     K = 1.
+    #     lin_vel_error = torch.sum(torch.square(target_pos_rel[:,:2]*K - self.root_states[:, 7:9]), dim=1)
+    #     # print("[goal vel rew]", torch.exp(-lin_vel_error/self.cfg.rewards.tracking_sigma))
+    #     # rew = torch.clip(torch.norm(cur_vel, dim=-1), 0, 0.5) 
  
-        return torch.exp(-lin_vel_error/self.cfg.rewards.tracking_sigma)
+    #     return torch.exp(-lin_vel_error/self.cfg.rewards.tracking_sigma)
         
     
     def _reward_termination(self): # TODO: split termination reward into different cases
         # Terminal reward / penalty
-        # we need to change this termination reward to have cases:
         # if termination is due to time out, no reward
-        goal_reached = self.check_goal_reached()
-        
-        collide = torch.any(torch.norm(self.contact_forces[:, self.termination_contact_indices, :], dim=-1) > 1., dim=1)
-        out_of_region = self.check_out_of_region()
-        print("goals reached ratio/out_of_region/collide  =",torch.sum(goal_reached).item(),torch.sum(out_of_region).item(), torch.sum(collide).item()) 
-        return goal_reached.float() - collide.float()*1.5 - out_of_region * 0.5
+        return (self.goal_reached * 1.
+                - torch.any(torch.norm(self.contact_forces[:, self.termination_contact_indices, :], dim=-1) > 1., dim=1) *1.5 
+                - self.out_of_region * 0.5)
      
 
     def _reward_hip_pos(self):
         return torch.sum(torch.square(self.dof_pos[:, self.hip_indices] - self.default_dof_pos[:, self.hip_indices]), dim=1)
-
-
-    def _reward_tracking_goal_vel(self):
-        norm = torch.norm(self.target_pos_rel[:,:2], dim=-1, keepdim=True)
-        target_vec_norm = self.target_pos_rel[:,:2] / (norm + 1e-5)
-        cur_vel = self.root_states[:, 7:9]
-        rew = torch.minimum(torch.sum(target_vec_norm * cur_vel, dim=-1), self.commands[:, 0]) / (self.commands[:, 0] + 1e-5)
-        return rew
-
-    def _reward_tracking_yaw(self):
-        rew = torch.exp(-torch.abs(self.target_yaw - self.yaw))
-        return rew
-    
     
     #------------ reward functions----------------
 

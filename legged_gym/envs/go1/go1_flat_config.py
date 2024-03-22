@@ -71,7 +71,7 @@ class Go1FlatCfg( Go1RoughCfg ):
             action_rate = -0.001
             collision = -0.5
             orientation = -2.
-            termination = 20.
+            termination = 40.
             
             # new reward funcs to be formulated
             
@@ -84,8 +84,6 @@ class Go1FlatCfg( Go1RoughCfg ):
             # zeros ones rewards are disabled
             lin_vel_z = 0.0 
             torques = -0.0
-
-            
             feet_stumble = -0.0 
             # base_height = -0.001 
             stand_still = -0.
@@ -104,14 +102,14 @@ class Go1FlatCfg( Go1RoughCfg ):
 
             # how about overwriting using extreme-parkolur parameters:
             tracking_goal_vel = 1.5
-            tracking_yaw = 1.5
+            tracking_yaw = 1.0
             # regularization rewards
             # lin_vel_z = -1.0
             # ang_vel_xy = -0.05
             orientation = -1.
             dof_acc = -2.5e-7
             collision = -10.
-            action_rate = -0.1
+            action_rate = -0.2
             # delta_torques = -1.0e-7
             torques = -0.00001
             # hip_pos = -0.5 # penalize deviation from default action 
