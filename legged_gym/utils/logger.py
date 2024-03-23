@@ -99,11 +99,12 @@ class Logger:
             draw_arrows(a, log["base_yaw"],log["base_pos_x"], log["base_pos_y"], density=30)
         if log["command_x_pos"]: 
             points = a.scatter(log["command_x_pos"][0], log["command_y_pos"][0], label='commanded', s = 10)
-
-            draw_circle(a, [log["command_x_pos"][0],  log["command_y_pos"][0]], radius = .2) # need to correspond to threshold distance of the goal reach function
+            unique_xs, unique_ys = select_unique_points(log["command_x_pos"], log["command_y_pos"])
+            draw_circle(a, [unique_xs, unique_ys], radius = .2) # need to correspond to threshold distance of the goal reach function
             
         if log["origin_x"]:
-            draw_ellipse(a, [log["origin_x"][0],log["origin_y"][0]], [log["command_x_pos"][0], log["command_y_pos"][0]], 0.8)
+            
+            draw_ellipse(a, [log["origin_x"][0],log["origin_y"][0]], [unique_xs, unique_ys], 0.8)
         # a.set(xlabel='position x [m]', ylabel='position y [m]', title='xy trajectory')
         if log["command_x_pos"]: fig.colorbar(points)
         a.legend()
@@ -207,7 +208,7 @@ def draw_arrows(ax, headings, xs, ys, density=30):
 
 
     
-def draw_ellipse(ax, focus1, focus2, diff = 0.8):
+def draw_ellipse(ax, focus1, focus2s, diff = 0.8):
     """
     Draw an ellipse based on the positions of the foci and the length of the major axis.
 
@@ -219,37 +220,57 @@ def draw_ellipse(ax, focus1, focus2, diff = 0.8):
     Returns:
     None
     """
-    
-    distance_foci = np.linalg.norm([focus1[0] - focus2[0], focus1[1] - focus2[1]])
-    major_axis_length = distance_foci + diff*2
-    
-    # Calculate the center of the ellipse
-    center = ((focus1[0] + focus2[0]) / 2, (focus1[1] + focus2[1]) / 2)
+    f2xs, f2ys = focus2s[0], focus2s[1]
+    for (f2x,f2y) in zip(f2xs, f2ys):
+        distance_foci = np.linalg.norm([focus1[0] - f2x, focus1[1] - f2y])
+        major_axis_length = distance_foci + diff*2
+        
+        # Calculate the center of the ellipse
+        center = ((focus1[0] + f2x) / 2, (focus1[1] + f2y) / 2)
 
-    # Calculate the semi-major axis length
-    semi_major_axis = major_axis_length / 2
+        # Calculate the semi-major axis length
+        semi_major_axis = major_axis_length / 2
 
-    # Calculate the semi-minor axis length
-    semi_minor_axis = np.sqrt((major_axis_length / 2) ** 2 - (distance_foci / 2) ** 2)
+        # Calculate the semi-minor axis length
+        semi_minor_axis = np.sqrt((major_axis_length / 2) ** 2 - (distance_foci / 2) ** 2)
 
+        # Create an array of angles from 0 to 2*pi
+        theta = np.linspace(0, 2 * np.pi, 100)
+
+        # Parametric equations for an ellipse
+        x = center[0] + semi_major_axis * np.cos(theta)
+        y = center[1] + semi_minor_axis * np.sin(theta)
+
+        # Plot the ellipse
+        ax.plot(x, y, c = 'b')
+
+
+def draw_circle(ax, centers, radius = .25):
     # Create an array of angles from 0 to 2*pi
-    theta = np.linspace(0, 2 * np.pi, 100)
+    cxs, cys = centers[0], centers[1]
+    
+    for cx, cy in zip(cxs, cys):
+        theta = np.linspace(0, 2 * np.pi, 100)
 
-    # Parametric equations for an ellipse
-    x = center[0] + semi_major_axis * np.cos(theta)
-    y = center[1] + semi_minor_axis * np.sin(theta)
+        # Parametric equations for an ellipse
+        x = cx + radius * np.cos(theta)
+        y = cy + radius * np.sin(theta)
+        ax.set_aspect('equal', adjustable='box')
 
-    # Plot the ellipse
-    ax.plot(x, y)
+        ax.plot(x,y, c = 'g')
 
+def select_unique_points(xs, ys):
+    unique_points = {}  # Dictionary to store unique points
 
-def draw_circle(ax, center, radius = .25):
-    # Create an array of angles from 0 to 2*pi
-    theta = np.linspace(0, 2 * np.pi, 100)
+    # Iterate through each point
+    for x, y in zip(xs, ys):
+        # Check if the point already exists in the dictionary
+        if (x, y) not in unique_points:
+            # If not, add it to the dictionary
+            unique_points[(x, y)] = True
+    
+    # Extract the unique x and y coordinates
+    unique_xs = [point[0] for point in unique_points.keys()]
+    unique_ys = [point[1] for point in unique_points.keys()]
 
-    # Parametric equations for an ellipse
-    x = center[0] + radius * np.cos(theta)
-    y = center[1] + radius * np.sin(theta)
-    ax.set_aspect('equal', adjustable='box')
-
-    ax.plot(x,y)
+    return unique_xs, unique_ys

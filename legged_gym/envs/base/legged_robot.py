@@ -1001,10 +1001,10 @@ class LeggedRobot(BaseTask):
         # Reward height off ground
         # Need to filter the contacts because the contact reporting of PhysX is unreliable on meshes
         none_contact = self.none_contact()
-        print("none contact ratio =",torch.sum(none_contact)/4096)
+        # print("none contact ratio =",torch.sum(none_contact)/4096)
         height_sqr= torch.square(self.root_states[:,2])
         # print("command [:,5] = ",torch.mean(self.commands[:,5]) )
-        return none_contact * torch.clip(height_sqr, torch.ones_like(height_sqr) * np.square(self.cfg.rewards.base_height_target), self.commands[:,5]) + 4. 
+        return none_contact * torch.clip(height_sqr, torch.ones_like(height_sqr) * np.square(self.cfg.rewards.base_height_target), self.commands[:,5]) 
     
     def _reward_xy_proximity(self):
         # Reward proximity to goal in xy plane

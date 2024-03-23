@@ -75,12 +75,14 @@ class Go1FlatCfg( Go1RoughCfg ):
             
             # new reward funcs to be formulated
             
-            height_off_ground = 0.
+            height_off_ground = 2.5
             xy_proximity = 0.
-            tracking_yaw = 1.5 # sensitive params
+            tracking_yaw = 1. # sensitive params
             tracking_goal_vel = 1.5 # sensitive params
-            # ang_vel_z = -2.5e-5 #-0.05
             
+
+
+
             # zeros ones rewards are disabled
             lin_vel_z = 0.0 
             torques = -0.0
@@ -98,11 +100,11 @@ class Go1FlatCfg( Go1RoughCfg ):
             # lin_vel_z = -2.0
             ang_vel_xy = -0.0 # 0.05
             feet_air_time =  .05
+        
 
 
             # how about overwriting using extreme-parkolur parameters:
-            tracking_goal_vel = 1.5
-            tracking_yaw = 1.0
+
             # regularization rewards
             # lin_vel_z = -1.0
             # ang_vel_xy = -0.05
@@ -131,8 +133,8 @@ class Go1FlatCfg( Go1RoughCfg ):
             # just height
             jump_start_z = [.6, 0.9] # [m]
             # also adding relative x,y position w.r.t init dog position 
-            jump_start_x = [1., 1.5] # relative coordinate of the static point
-            jump_start_y = [-0.0, 0.0] # relative cooridnate fo the static point
+            jump_start_x = [.5, 1.] # relative coordinate of the static point
+            jump_start_y = [-0.3, 0.3] # relative cooridnate fo the static point
 
 
 class Go1FlatCfgPPO( Go1RoughCfgPPO ):
