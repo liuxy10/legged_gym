@@ -98,8 +98,9 @@ class Logger:
         if log["base_yaw"]: 
             draw_arrows(a, log["base_yaw"],log["base_pos_x"], log["base_pos_y"], density=30)
         if log["command_x_pos"]: 
-            points = a.scatter(log["command_x_pos"][0], log["command_y_pos"][0], label='commanded', s = 10)
+            
             unique_xs, unique_ys = select_unique_points(log["command_x_pos"], log["command_y_pos"])
+            points = a.scatter(unique_xs, unique_ys, label='commanded', s = 10)
             draw_circle(a, [unique_xs, unique_ys], radius = .2) # need to correspond to threshold distance of the goal reach function
             
         if log["origin_x"]:
