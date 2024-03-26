@@ -68,7 +68,7 @@ def play(args):
     logger = Logger(env.dt)
     robot_index = 0 # which robot is used for logging
     joint_index = 1 # which joint is used for logging
-    stop_state_log = 300 # number of steps before plotting states
+    stop_state_log = 100 # number of steps before plotting states
     stop_rew_log = env.max_episode_length + 1 # number of steps before print average episode rewards
     camera_position = np.array(env_cfg.viewer.pos, dtype=float)
     camera_vel = np.array([1., 1., 0.])
@@ -80,8 +80,12 @@ def play(args):
         actions = policy(obs.detach())
         obs, _, rews, dones, infos = env.step(actions.detach())
         if RECORD_FRAMES:
+            dirname = os.path.join(LEGGED_GYM_ROOT_DIR, 'logs', train_cfg.runner.experiment_name, 'exported', 'frames')
+            filename = os.path.join(dirname, f"{img_idx}.png")
+            if not os.path.isdir(dirname):
+                os.makedirs(dirname, exist_ok=True)
             if i % 2:
-                filename = os.path.join(LEGGED_GYM_ROOT_DIR, 'logs', train_cfg.runner.experiment_name, 'exported', 'frames', f"{img_idx}.png")
+                
                 env.gym.write_viewer_image_to_file(env.viewer, filename)
                 img_idx += 1 
         if MOVE_CAMERA:
@@ -156,7 +160,7 @@ def play(args):
 
 if __name__ == '__main__':
     EXPORT_POLICY = True
-    RECORD_FRAMES = False
+    RECORD_FRAMES = True
     MOVE_CAMERA = False
     args = get_args()
     play(args)

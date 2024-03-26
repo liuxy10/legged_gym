@@ -131,10 +131,10 @@ class Go1FlatCfg( Go1RoughCfg ):
             heading = [-3.14, 3.14]
             jump_start_z_vel = [0.5, 1.2] # [m/s]
             # just height
-            jump_start_z = [.6, 0.9] # [m]
+            jump_start_z = [.6, .7] # [m]
             # also adding relative x,y position w.r.t init dog position 
             jump_start_x = [.5, 1.] # relative coordinate of the static point
-            jump_start_y = [-0.3, 0.3] # relative cooridnate fo the static point
+            jump_start_y = [-0.5, 0.5] # relative cooridnate fo the static point
 
 
 class Go1FlatCfgPPO( Go1RoughCfgPPO ):

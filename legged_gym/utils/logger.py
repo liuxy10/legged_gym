@@ -32,6 +32,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from collections import defaultdict
 from multiprocessing import Process, Value
+import os
 
 class Logger:
     def __init__(self, dt):
@@ -61,6 +62,7 @@ class Logger:
     def plot_states(self):
         self.plot_process = Process(target=self._plot)
         self.plot_process.start()
+        
 
 
         
@@ -101,7 +103,7 @@ class Logger:
             
             unique_xs, unique_ys = select_unique_points(log["command_x_pos"], log["command_y_pos"])
             points = a.scatter(unique_xs, unique_ys, label='commanded', s = 10)
-            draw_circle(a, [unique_xs, unique_ys], radius = .2) # need to correspond to threshold distance of the goal reach function
+            draw_circle(a, [unique_xs, unique_ys], radius = .15) # need to correspond to threshold distance of the goal reach function
             
         if log["origin_x"]:
             
@@ -109,12 +111,7 @@ class Logger:
         # a.set(xlabel='position x [m]', ylabel='position y [m]', title='xy trajectory')
         if log["command_x_pos"]: fig.colorbar(points)
         a.legend()
-        # # plot base vel y
-        # a = axs[0, 1]
-        # if log["base_vel_y"]: a.plot(time, log["base_vel_y"], label='measured')
-        # if log["command_y_vel"]: a.plot(time, log["command_y_vel"], label='commanded')
-        # a.set(xlabel='time [s]', ylabel='base lin vel [m/s]', title='Base velocity y')
-        # a.legend()
+
         
         # plot base z
         a = axs[0, 1]
@@ -208,6 +205,8 @@ def draw_arrows(ax, headings, xs, ys, density=30):
     ax.set_title('Trajectories with Headings')
 
 
+
+
     
 def draw_ellipse(ax, focus1, focus2s, diff = 0.8):
     """
@@ -246,7 +245,7 @@ def draw_ellipse(ax, focus1, focus2s, diff = 0.8):
         ax.plot(x, y, c = 'b')
 
 
-def draw_circle(ax, centers, radius = .25):
+def draw_circle(ax, centers, radius = .15):
     # Create an array of angles from 0 to 2*pi
     cxs, cys = centers[0], centers[1]
     

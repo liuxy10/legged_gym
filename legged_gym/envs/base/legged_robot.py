@@ -204,7 +204,7 @@ class LeggedRobot(BaseTask):
         self.reset_buf |= self.time_out_buf 
         # goal could be updated in #TODO: how to define goal
         if self.cfg.train_jump:
-            self.goal_reached = self.check_goal_reached(dist_thres= .25, xy_only=False)
+            self.goal_reached = self.check_goal_reached(dist_thres= .15, xy_only=False)
             self.out_of_region = self.check_out_of_region()
             self.reset_buf |= self.goal_reached 
             self.reset_buf |= self.out_of_region
@@ -271,6 +271,7 @@ class LeggedRobot(BaseTask):
         self.last_actions[env_ids] = 0.
         self.last_dof_vel[env_ids] = 0.
         self.feet_air_time[env_ids] = 0.
+        self.num_jump = 0
         self.episode_length_buf[env_ids] = 0
         self.reset_buf[env_ids] = 1
         # fill extras
@@ -619,6 +620,7 @@ class LeggedRobot(BaseTask):
         self.commands = torch.zeros(self.num_envs, self.cfg.commands.num_commands, dtype=torch.float, device=self.device, requires_grad=False) # x vel, y vel, yaw vel, heading
         self.commands_scale = torch.tensor([self.obs_scales.lin_vel, self.obs_scales.lin_vel, self.obs_scales.ang_vel], device=self.device, requires_grad=False,) # TODO change this
         self.feet_air_time = torch.zeros(self.num_envs, self.feet_indices.shape[0], dtype=torch.float, device=self.device, requires_grad=False)
+        self.num_jump = torch.zeros(self.num_envs, self.feet_indices.shape[0], dtype=torch.int, device=self.device, requires_grad=False)
         self.last_contacts = torch.zeros(self.num_envs, len(self.feet_indices), dtype=torch.bool, device=self.device, requires_grad=False)
         self.base_lin_vel = quat_rotate_inverse(self.base_quat, self.root_states[:, 7:10])
         self.base_ang_vel = quat_rotate_inverse(self.base_quat, self.root_states[:, 10:13])
@@ -962,6 +964,12 @@ class LeggedRobot(BaseTask):
         # print("no_contact sum",torch.sum(no_contact, dim = 0))
         none_contact = torch.logical_and(no_contact[:,3],torch.logical_and(no_contact[:,2],torch.logical_and(no_contact[:,1],no_contact[:,0])))
         return none_contact
+    
+    def num_of_jump_update(self):
+        pass 
+    
+    def num_times_landing(self):
+        self.contact_forces[:, self.feet_indices, 2] 
         
 
 
@@ -1002,17 +1010,16 @@ class LeggedRobot(BaseTask):
         # Need to filter the contacts because the contact reporting of PhysX is unreliable on meshes
         none_contact = self.none_contact()
         # print("none contact ratio =",torch.sum(none_contact)/4096)
-        height_sqr= torch.square(self.root_states[:,2])
+        height_sqr= torch.abs(self.root_states[:,2])
         # print("command [:,5] = ",torch.mean(self.commands[:,5]) )
-        return none_contact * torch.clip(height_sqr, torch.ones_like(height_sqr) * np.square(self.cfg.rewards.base_height_target), self.commands[:,5]) 
+        return none_contact * torch.clip(height_sqr, torch.ones_like(height_sqr) * np.square(self.cfg.rewards.base_height_target), torch.square(self.commands[:,5])) 
     
     def _reward_xy_proximity(self):
         # Reward proximity to goal in xy plane
         # goal_pos = self.get_goal_position()
         # rew = - torch.nn.functional.elu(- 1. + 20* torch.sum(torch.square(self.root_states[:,:2] - goal_pos[:,:2]), dim = 1))
-        rew = -torch.norm(self.get_target_pos_rel()[:,:2], dim = 1) + 1.5
-        # print("xy_proximity = ", rew)
-        return rew
+        return 1/torch.norm(self.get_target_pos_rel()[:,:3], dim = 1) 
+    
 
     
     # def _reward_tracking_yaw(self):
