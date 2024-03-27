@@ -288,6 +288,7 @@ class LeggedRobot(BaseTask):
         if self.cfg.env.send_timeouts:
             self.extras["time_outs"] = self.time_out_buf
     
+    # TODO: change this to include 
     def compute_reward(self):
         """ Compute rewards
             Calls each reward function which had a non-zero scale (processed in self._prepare_reward_function())
@@ -301,16 +302,42 @@ class LeggedRobot(BaseTask):
             self.episode_sums[name] += rew
         if self.cfg.rewards.only_positive_rewards:
             self.rew_buf[:] = torch.clip(self.rew_buf[:], min=0.)
+        
         # add termination reward after clipping
         if "termination" in self.reward_scales:
             rew = self._reward_termination() * self.reward_scales["termination"]
             self.rew_buf += rew
             self.episode_sums["termination"] += rew
     
+    def overwrite_cmd_as_target(self):
+
+        delta_xyz = self.get_target_pos_rel()
+
+        self.commands[:,0] = delta_xyz[:,0] # lin_x_vel
+        self.commands[:,1] = delta_xyz[:,1]# lin_y_vel
+        self.commands[:,2] = self.target_yaw - self.yaw # yaw_vel
+    
     def compute_observations(self):
         """ Computes observations
         """
-        self.obs_buf = torch.cat((  self.base_lin_vel * self.obs_scales.lin_vel,
+        # imu_obs = torch.stack((self.roll, self.pitch), dim=1)
+        # # in real robot, 
+        # self.delta_yaw = self.target_yaw - self.yaw
+        # self.delta_height = self.commands[:,5] - self.root_states[:,2]
+        if self.cfg.train_jump:
+            self.overwrite_cmd_as_target()
+        if self.cfg.train_jump:
+            self.obs_buf = torch.cat((  self.base_lin_vel * self.obs_scales.lin_vel,
+                                    self.base_ang_vel  * self.obs_scales.ang_vel,
+                                    self.projected_gravity,
+                                    self.commands[:, :3],
+                                    (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos,
+                                    self.dof_vel * self.obs_scales.dof_vel,
+                                    self.actions
+                                    ),dim=-1)
+        
+        else:
+            self.obs_buf = torch.cat((  self.base_lin_vel * self.obs_scales.lin_vel,
                                     self.base_ang_vel  * self.obs_scales.ang_vel,
                                     self.projected_gravity,
                                     self.commands[:, :3] * self.commands_scale,
@@ -372,7 +399,6 @@ class LeggedRobot(BaseTask):
                 bucket_ids = torch.randint(0, num_buckets, (self.num_envs, 1))
                 friction_buckets = torch_rand_float(friction_range[0], friction_range[1], (num_buckets,1), device='cpu')
                 self.friction_coeffs = friction_buckets[bucket_ids]
-
             for s in range(len(props)):
                 props[s].friction = self.friction_coeffs[env_id]
         return props
