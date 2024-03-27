@@ -37,12 +37,12 @@ class Go1FlatCfg( Go1RoughCfg ):
     draw_goal = False
 
     class env( Go1RoughCfg.env ):
-        num_observations = 48
+        num_observations = 49
         
 
     class terrain( Go1RoughCfg.terrain ):
         mesh_type = 'plane'
-        measure_heights = False
+        measure_heights = True
 
 
     class asset( Go1RoughCfg.asset ):
@@ -71,14 +71,14 @@ class Go1FlatCfg( Go1RoughCfg ):
             action_rate = -0.001
             collision = -0.5
             orientation = -2.
-            termination = 40.
+            termination = 100.
             
             # new reward funcs to be formulated
             
-            height_off_ground = 2.5
-            xy_proximity = 0.
-            tracking_yaw = 1. # sensitive params
-            tracking_goal_vel = 1.5 # sensitive params
+            height_off_ground = 10.
+            # xy_proximity = 0.
+            # tracking_yaw = 1. # sensitive params
+            # tracking_goal_vel = 1.5 # sensitive params
             
 
 
@@ -92,11 +92,11 @@ class Go1FlatCfg( Go1RoughCfg ):
             
             dof_vel = -0.
             
-            tracking_lin_vel = 0.0
-            tracking_ang_vel = 0.0
+            # tracking_lin_vel = 0.0
+            # tracking_ang_vel = 0.0
 
-            # tracking_lin_vel = 1.0
-            # tracking_ang_vel = 0.5
+            tracking_lin_vel = 1.5
+            tracking_ang_vel = 1.
             # lin_vel_z = -2.0
             ang_vel_xy = -0.0 # 0.05
             feet_air_time =  .05
@@ -125,17 +125,23 @@ class Go1FlatCfg( Go1RoughCfg ):
         resampling_time = 4. # time before command are changed[s]
         heading_command = False # if true: compute ang vel command from heading error
         class ranges:
-            lin_vel_x = [1., 1.]#[-1.0, 1.0] # min max [m/s]
-            lin_vel_y = [0., 0.]#[-1.0, 1.0]   # min max [m/s]
-            ang_vel_yaw = [0., 0.] #[-1, 1]    # min max [rad/s]
+            lin_vel_x = [.5, 1.]#[-1.0, 1.0] # min max [m/s]
+            lin_vel_y = [-1., 1.]#[-1.0, 1.0]   # min max [m/s]
+            ang_vel_yaw = [-2., 2.] #[-1, 1]    # min max [rad/s]
             heading = [-3.14, 3.14]
             jump_start_z_vel = [0.5, 1.2] # [m/s]
             # just height
-            jump_start_z = [.6, .7] # [m]
-            # also adding relative x,y position w.r.t init dog position 
-            jump_start_x = [.5, 1.] # relative coordinate of the static point
-            jump_start_y = [-0.5, 0.5] # relative cooridnate fo the static point
 
+            # jump_start_z = [.6, .7] # [m]
+            # # also adding relative x,y position w.r.t init dog position 
+            # jump_start_x = [.5, 1.] # relative coordinate of the static point
+            # jump_start_y = [-0.5, 0.5] # relative cooridnate fo the static point
+
+            # testing
+            jump_start_z = [.3, .8] # [m]
+            # also adding relative x,y position w.r.t init dog position 
+            jump_start_x = [1., 1.] # relative coordinate of the static point
+            jump_start_y = [-0.6, 0.6] # relative cooridnate fo the static point
 
 class Go1FlatCfgPPO( Go1RoughCfgPPO ):
     class policy( Go1RoughCfgPPO.policy ):

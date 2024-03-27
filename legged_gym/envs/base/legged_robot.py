@@ -207,7 +207,7 @@ class LeggedRobot(BaseTask):
             self.goal_reached = self.check_goal_reached(dist_thres= .15, xy_only=False)
             self.out_of_region = self.check_out_of_region()
             self.reset_buf |= self.goal_reached 
-            self.reset_buf |= self.out_of_region
+            # self.reset_buf |= self.out_of_region
             
             self._update_stats()
     
@@ -312,9 +312,10 @@ class LeggedRobot(BaseTask):
     def overwrite_cmd_as_target(self):
 
         delta_xyz = self.get_target_pos_rel()
+        base_delta_xyz = quat_rotate_inverse(self.base_quat, delta_xyz)
 
-        self.commands[:,0] = delta_xyz[:,0] # lin_x_vel
-        self.commands[:,1] = delta_xyz[:,1]# lin_y_vel
+        self.commands[:,0] = base_delta_xyz[:,0] # lin_x_vel
+        self.commands[:,1] = base_delta_xyz[:,1]# lin_y_vel
         self.commands[:,2] = self.target_yaw - self.yaw # yaw_vel
     
     def compute_observations(self):
@@ -326,18 +327,9 @@ class LeggedRobot(BaseTask):
         # self.delta_height = self.commands[:,5] - self.root_states[:,2]
         if self.cfg.train_jump:
             self.overwrite_cmd_as_target()
-        if self.cfg.train_jump:
-            self.obs_buf = torch.cat((  self.base_lin_vel * self.obs_scales.lin_vel,
-                                    self.base_ang_vel  * self.obs_scales.ang_vel,
-                                    self.projected_gravity,
-                                    self.commands[:, :3],
-                                    (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos,
-                                    self.dof_vel * self.obs_scales.dof_vel,
-                                    self.actions
-                                    ),dim=-1)
-        
-        else:
-            self.obs_buf = torch.cat((  self.base_lin_vel * self.obs_scales.lin_vel,
+        # print("self.commands[0, :3]", self.commands[0, :3])
+
+        self.obs_buf = torch.cat((  self.base_lin_vel * self.obs_scales.lin_vel,
                                     self.base_ang_vel  * self.obs_scales.ang_vel,
                                     self.projected_gravity,
                                     self.commands[:, :3] * self.commands_scale,
@@ -348,6 +340,10 @@ class LeggedRobot(BaseTask):
         # add perceptive inputs if not blind
         if self.cfg.terrain.measure_heights:
             heights = torch.clip(self.root_states[:, 2].unsqueeze(1) - 0.5 - self.measured_heights, -1, 1.) * self.obs_scales.height_measurements
+            # print(self.root_states[:, 2].unsqueeze(1).shape)
+            if self.cfg.train_jump:
+                heights = (self.commands[:,5] - self.root_states[:,2]).unsqueeze(1)
+                # print("and ", (self.commands[:,5] - self.root_states[:,2]).unsqueeze(1).shape)
             self.obs_buf = torch.cat((self.obs_buf, heights), dim=-1)
         # add noise if needed
         if self.add_noise:
@@ -1036,10 +1032,11 @@ class LeggedRobot(BaseTask):
         # Need to filter the contacts because the contact reporting of PhysX is unreliable on meshes
         none_contact = self.none_contact()
         # print("none contact ratio =",torch.sum(none_contact)/4096)
-        height_sqr= torch.abs(self.root_states[:,2])
+        height_err_abs= torch.abs(self.cfg.rewards.base_height_target - self.root_states[:,2])
         # print("command [:,5] = ",torch.mean(self.commands[:,5]) )
-        return none_contact * torch.clip(height_sqr, torch.ones_like(height_sqr) * np.square(self.cfg.rewards.base_height_target), torch.square(self.commands[:,5])) 
-    
+        # return none_contact * torch.clip(height_sqr, torch.ones_like(height_sqr) * np.square(self.cfg.rewards.base_height_target), torch.square(self.commands[:,5])) 
+        return none_contact * torch.exp(-height_err_abs)
+
     def _reward_xy_proximity(self):
         # Reward proximity to goal in xy plane
         # goal_pos = self.get_goal_position()

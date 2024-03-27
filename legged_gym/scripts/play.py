@@ -68,7 +68,7 @@ def play(args):
     logger = Logger(env.dt)
     robot_index = 0 # which robot is used for logging
     joint_index = 1 # which joint is used for logging
-    stop_state_log = 100 # number of steps before plotting states
+    stop_state_log = 200 # number of steps before plotting states
     stop_rew_log = env.max_episode_length + 1 # number of steps before print average episode rewards
     camera_position = np.array(env_cfg.viewer.pos, dtype=float)
     camera_vel = np.array([1., 1., 0.])
@@ -114,9 +114,12 @@ def play(args):
                         'origin_x': env.env_origins[robot_index,0].item(),
                         'origin_y': env.env_origins[robot_index,1].item(),
                         'command_yaw': env.commands[robot_index, 2].item(),
-                        'base_vel_x': env.root_states[robot_index, 7].item(),
-                        'base_vel_y': env.root_states[robot_index, 8].item(),
-                        'base_vel_z': env.root_states[robot_index, 9].item(),
+                        # 'base_vel_x': env.root_states[robot_index, 7].item(),
+                        # 'base_vel_y': env.root_states[robot_index, 8].item(),
+                        # 'base_vel_z': env.root_states[robot_index, 9].item(),
+                        'base_vel_x': env.base_lin_vel[robot_index, 0].item(),
+                        'base_vel_y': env.base_lin_vel[robot_index, 1].item(),
+                        'base_vel_z': env.base_lin_vel[robot_index, 2].item(),
                         'base_vel_yaw': env.base_ang_vel[robot_index, 2].item(),
                         'base_vel_roll': env.base_ang_vel[robot_index, 0].item(),
                         'contact_forces_z': env.contact_forces[robot_index, env.feet_indices, 2].cpu().numpy()
