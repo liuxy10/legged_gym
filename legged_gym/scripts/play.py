@@ -45,10 +45,10 @@ def play(args):
     env_cfg.env.num_envs = min(env_cfg.env.num_envs, 50)
     env_cfg.terrain.num_rows = 5
     env_cfg.terrain.num_cols = 5
-    env_cfg.terrain.curriculum = False
-    env_cfg.noise.add_noise = False
-    env_cfg.domain_rand.randomize_friction = False
-    env_cfg.domain_rand.push_robots = False
+    # env_cfg.terrain.curriculum = False
+    # env_cfg.noise.add_noise = False
+    # env_cfg.domain_rand.randomize_friction = False
+    # env_cfg.domain_rand.push_robots = False
     env_cfg.draw_goals = args.draw_goals 
 
     # prepare environment
@@ -160,6 +160,8 @@ def play(args):
             logger.print_rewards()
 
     env.print_stats_sum_reset()
+    print("#"*10 + " end reward" + "#" * 10)
+    logger.print_rewards()
 
 if __name__ == '__main__':
     EXPORT_POLICY = True
